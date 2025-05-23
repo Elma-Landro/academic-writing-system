@@ -2,11 +2,9 @@
 
 Un système complet pour structurer, rédiger et réviser des textes académiques avec assistance IA.
 
-## Présentation
+## Vision et concept
 
-Le Système de Rédaction Académique est une application web conçue pour aider les chercheurs, enseignants et étudiants à produire des textes académiques de qualité en suivant un workflow optimisé et en bénéficiant d'une assistance IA adaptée.
-
-Ce système intègre la méthodologie Michelat et l'Agent de Construction Sectionnelle pour offrir une expérience de rédaction structurée, cohérente et efficace.
+Le Système de Rédaction Académique Intégré est une plateforme complète conçue pour accompagner les chercheurs et académiques tout au long du processus de création de textes scientifiques. Contrairement aux outils d'écriture traditionnels ou aux assistants IA génériques, ce système repose sur une **logique de sédimentation progressive** où chaque étape enrichit la suivante, créant ainsi un flux de travail cohérent et une mémoire contextuelle riche.
 
 ## Fonctionnalités principales
 
@@ -25,12 +23,6 @@ Le système est organisé en modules distincts :
 - **Core** : Modules fondamentaux (profil utilisateur, contexte de projet, moteur adaptatif, etc.)
 - **Modules** : Fonctionnalités spécifiques (storyboard, rédaction, révision, finalisation)
 - **Utils** : Services utilitaires (IA, cache, fonctions communes)
-
-  # Système de Rédaction Académique Intégré
-
-## Vision et concept
-
-Le Système de Rédaction Académique Intégré est une plateforme complète conçue pour accompagner les chercheurs et académiques tout au long du processus de création de textes scientifiques. Contrairement aux outils d'écriture traditionnels ou aux assistants IA génériques, ce système repose sur une **logique de sédimentation progressive** où chaque étape enrichit la suivante, créant ainsi un flux de travail cohérent et une mémoire contextuelle riche.
 
 ### Approche sédimentaire et relationnelle
 
