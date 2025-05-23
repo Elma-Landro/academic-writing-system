@@ -1,195 +1,216 @@
-def render_redaction(project_id, section_id, project_context, history_manager, adaptive_engine, integration_layer):
+def render_redaction(project_id, project_context, history_manager, adaptive_engine):
     """
-    Affiche l'interface de rédaction pour une section de projet.
+    Affiche l'interface de rédaction pour un projet.
     
     Args:
         project_id: ID du projet
-        section_id: ID de la section (optionnel)
         project_context: Instance de ProjectContext
         history_manager: Instance de HistoryManager
         adaptive_engine: Instance de AdaptiveEngine
-        integration_layer: Instance de IntegrationLayer
     """
     import streamlit as st
     from utils.ai_service import generate_academic_text
     
-    st.title("Rédaction")
-    
     # Chargement des données du projet
     project = project_context.load_project(project_id)
     
-    st.subheader(project.get("title", "Sans titre"))
-    
-    # Sélection de la section
+    # Récupération des sections
     sections = project.get("sections", [])
     
+    # Vérification qu'il y a des sections
     if not sections:
         st.warning("Aucune section n'a été créée. Veuillez d'abord créer des sections dans le storyboard.")
         
-        if st.button("Aller au storyboard"):
+        if st.button("Retour au storyboard"):
             st.session_state.page = "storyboard"
             st.rerun()
-            
-        return
-    
-    # Si aucune section n'est sélectionnée, afficher la liste des sections
-    if not section_id:
-        st.write("Sélectionnez une section à rédiger:")
         
-        for i, section in enumerate(sections):
-            if st.button(f"{i+1}. {section.get('title', 'Sans titre')}", key=f"select_{section.get('section_id', '')}"):
-                st.session_state.current_section_id = section.get("section_id", "")
-                st.rerun()
-                
         return
     
-    # Récupération de la section sélectionnée
+    # Récupération de la section actuelle
+    current_section_id = st.session_state.get("current_section_id")
+    
+    # Si aucune section n'est sélectionnée, prendre la première
+    if not current_section_id and sections:
+        current_section_id = sections[0].get("section_id", "")
+        st.session_state.current_section_id = current_section_id
+    
+    # Recherche de la section actuelle
     current_section = None
-    for section in sections:
-        if section.get("section_id") == section_id:
+    current_section_index = 0
+    
+    for i, section in enumerate(sections):
+        if section.get("section_id", "") == current_section_id:
             current_section = section
+            current_section_index = i
             break
     
+    # Vérification que la section existe
     if not current_section:
-        st.error("Section non trouvée.")
-        st.session_state.current_section_id = None
-        st.rerun()
+        st.warning("La section sélectionnée n'existe pas.")
+        
+        if st.button("Retour au storyboard"):
+            st.session_state.page = "storyboard"
+            st.rerun()
+        
         return
     
-    # Affichage du titre de la section
-    st.write(f"Section: **{current_section.get('title', 'Sans titre')}**")
+    # Affichage du titre du projet et de la section
+    st.title(f"Rédaction: {project.get('title', 'Sans titre')}")
+    st.subheader(f"Section: {current_section.get('title', 'Sans titre')}")
     
-    # Affichage du contenu actuel
-    current_content = current_section.get("content", "")
+    # Affichage de la structure existante si présente
+    existing_structure = project.get("existing_structure", "")
+    if existing_structure:
+        with st.expander("Structure du document"):
+            st.text(existing_structure)
+            
+            # Mise en évidence de la section actuelle dans la structure
+            section_title = current_section.get("title", "")
+            if section_title in existing_structure:
+                st.info(f"Section actuelle: {section_title}")
     
-    # Interface de rédaction
+    # Création de deux colonnes pour l'interface
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        # Éditeur de texte
+        # Récupération du contenu actuel
+        current_content = current_section.get("content", "")
+        
+        # Champ d'édition du contenu
         new_content = st.text_area(
             "Contenu de la section",
             value=current_content,
-            height=400
+            height=500
         )
         
-        # Boutons d'action
-        save_col, cancel_col = st.columns(2)
-        
-        with save_col:
-            if st.button("Enregistrer"):
-                if project_context.update_section(
-                    project_id=project_id,
-                    section_id=section_id,
-                    content=new_content
-                ):
-                    # Mise à jour des métadonnées
-                    project_context.update_project_metadata(project_id)
-                    
-                    # Mise à jour du statut du projet
-                    if project.get("status") == "storyboard_ready":
-                        project_context.update_project_status(project_id, "draft_in_progress")
-                    
-                    # Sauvegarde de la version dans l'historique
-                    project_data = project_context.load_project(project_id)
-                    history_manager.save_version(
-                        project_id=project_id,
-                        project_data=project_data,
-                        description=f"Mise à jour de la section: {current_section.get('title', 'Sans titre')}"
-                    )
-                    
-                    st.success("Section enregistrée avec succès!")
-                    st.rerun()
-                else:
-                    st.error("Erreur lors de l'enregistrement de la section.")
-        
-        with cancel_col:
-            if st.button("Annuler"):
-                st.session_state.current_section_id = None
-                st.session_state.page = "project_overview"
-                st.rerun()
+        # Bouton d'enregistrement
+        if st.button("Enregistrer"):
+            # Mise à jour du contenu
+            current_section["content"] = new_content
+            
+            # Sauvegarde du projet
+            project_context.update_section(project_id, current_section_id, current_section)
+            
+            # Mise à jour des métadonnées
+            project_context.update_project_metadata(project_id)
+            
+            # Mise à jour du statut du projet
+            if project.get("status") == "storyboard_ready":
+                project_context.update_project_status(project_id, "redaction_in_progress")
+            
+            # Sauvegarde de la version dans l'historique
+            project_data = project_context.load_project(project_id)
+            history_manager.save_version(
+                project_id=project_id,
+                project_data=project_data,
+                description=f"Mise à jour de la section: {current_section.get('title', 'Sans titre')}"
+            )
+            
+            st.success("Contenu enregistré avec succès!")
     
     with col2:
-        # Suggestions et outils d'aide à la rédaction
-        st.subheader("Outils d'aide")
+        # Affichage des éléments du storyboard
+        st.subheader("Éléments du storyboard")
         
-        # Analyse de complexité
-        if current_content:
-            complexity = adaptive_engine.analyze_text_complexity(current_content)
-            
-            st.write("**Analyse du texte:**")
-            st.write(f"- Mots: {complexity.get('word_count', 0)}")
-            st.write(f"- Phrases: {complexity.get('sentence_count', 0)}")
-            st.write(f"- Longueur moyenne des phrases: {complexity.get('avg_sentence_length', 0):.1f} mots")
-            st.write(f"- Score de complexité: {complexity.get('complexity_score', 0):.1f}/20")
+        # Récupération des thèses et citations associées à cette section
+        theses = current_section.get("theses", [])
         
-        # Suggestions de style
-        st.write("**Suggestions de style:**")
+        if theses:
+            for i, thesis in enumerate(theses):
+                with st.expander(f"Thèse {i+1}"):
+                    st.write(thesis.get("content", ""))
+                    
+                    # Affichage des citations
+                    citations = thesis.get("citations", [])
+                    
+                    if citations:
+                        st.write("Citations associées:")
+                        
+                        for j, citation in enumerate(citations):
+                            st.markdown(f"*\"{citation}\"*")
+                            
+                            if st.button(f"Insérer cette citation", key=f"citation_{i}_{j}"):
+                                # Ajout de la citation au contenu
+                                if new_content:
+                                    new_content += f"\n\n> {citation}\n\n"
+                                else:
+                                    new_content = f"> {citation}\n\n"
+                                
+                                st.session_state.new_content = new_content
+                                st.rerun()
+        else:
+            st.info("Aucune thèse n'est associée à cette section.")
         
-        target_style = project.get("preferences", {}).get("style", "Standard")
-        suggestions = adaptive_engine.suggest_style_improvements(current_content, target_style)
-        
-        for suggestion in suggestions[:3]:  # Limite à 3 suggestions
-            st.info(f"💡 {suggestion}")
-        
-        # Génération de contenu assistée
+        # Génération assistée
+        st.markdown("---")
         st.subheader("Génération assistée")
         
-        with st.form("generate_content_form"):
-            prompt = st.text_area(
-                "Description du contenu à générer",
-                placeholder="Décrivez le contenu que vous souhaitez générer..."
-            )
-            
-            style = st.selectbox(
-                "Style d'écriture",
-                ["Standard", "Académique", "CRÉSUS-NAKAMOTO", "AcademicWritingCrypto"],
-                index=["Standard", "Académique", "CRÉSUS-NAKAMOTO", "AcademicWritingCrypto"].index(
-                    project.get("preferences", {}).get("style", "Standard")
-                )
-            )
-            
-            length = st.slider(
-                "Longueur approximative (mots)",
-                min_value=100,
-                max_value=1000,
-                value=300,
-                step=100
-            )
-            
-            generate_button = st.form_submit_button("Générer")
-            
-            if generate_button and prompt:
-                with st.spinner("Génération du contenu en cours..."):
-                    result = generate_academic_text(
-                        prompt=prompt,
-                        style=style,
-                        length=length
-                    )
-                    
-                    generated_text = result.get("text", "")
-                    
-                    if generated_text:
-                        st.session_state.generated_text = generated_text
-                        st.success("Contenu généré avec succès!")
-                    else:
-                        st.error("Erreur lors de la génération du contenu.")
+        # Construction du prompt à partir des thèses
+        default_prompt = ""
+        if theses:
+            default_prompt = "Rédiger une section académique sur les points suivants:\n\n"
+            for i, thesis in enumerate(theses):
+                default_prompt += f"{i+1}. {thesis.get('content', '')}\n"
         
-        # Affichage du texte généré
-        if "generated_text" in st.session_state:
-            st.subheader("Contenu généré")
-            st.write(st.session_state.generated_text)
-            
-            if st.button("Insérer ce contenu"):
-                # Insertion du contenu généré dans l'éditeur
-                new_content = st.session_state.generated_text
+        prompt = st.text_area(
+            "Prompt pour la génération",
+            value=default_prompt,
+            height=150
+        )
+        
+        style = st.selectbox(
+            "Style d'écriture",
+            ["Standard", "Académique", "CRÉSUS-NAKAMOTO", "AcademicWritingCrypto"],
+            index=["Standard", "Académique", "CRÉSUS-NAKAMOTO", "AcademicWritingCrypto"].index(
+                project.get("preferences", {}).get("style", "Standard")
+            )
+        )
+        
+        length = st.slider(
+            "Longueur approximative (mots)",
+            min_value=100,
+            max_value=1000,
+            value=300,
+            step=100
+        )
+        
+        if st.button("Générer"):
+            with st.spinner("Génération en cours..."):
+                result = generate_academic_text(
+                    prompt=prompt,
+                    style=style,
+                    length=length
+                )
                 
-                # Mise à jour de la section
-                if project_context.update_section(
-                    project_id=project_id,
-                    section_id=section_id,
-                    content=new_content
-                ):
+                generated_content = result.get("text", "")
+                
+                if generated_content:
+                    st.session_state.generated_content = generated_content
+                    st.success("Contenu généré avec succès!")
+                    st.rerun()
+                else:
+                    st.error("Erreur lors de la génération du contenu.")
+        
+        # Affichage du contenu généré
+        if hasattr(st.session_state, 'generated_content'):
+            st.markdown("---")
+            st.subheader("Contenu généré")
+            
+            st.markdown(st.session_state.generated_content)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("Insérer ce contenu"):
+                    new_content = st.session_state.generated_content
+                    
+                    # Mise à jour du contenu
+                    current_section["content"] = new_content
+                    
+                    # Sauvegarde du projet
+                    project_context.update_section(project_id, current_section_id, current_section)
+                    
                     # Mise à jour des métadonnées
                     project_context.update_project_metadata(project_id)
                     
@@ -198,37 +219,92 @@ def render_redaction(project_id, section_id, project_context, history_manager, a
                     history_manager.save_version(
                         project_id=project_id,
                         project_data=project_data,
-                        description=f"Contenu généré pour la section: {current_section.get('title', 'Sans titre')}"
+                        description=f"Génération de contenu pour la section: {current_section.get('title', 'Sans titre')}"
                     )
+                    
+                    # Suppression du contenu généré de la session
+                    del st.session_state.generated_content
                     
                     st.success("Contenu inséré avec succès!")
                     st.rerun()
-                else:
-                    st.error("Erreur lors de l'insertion du contenu.")
+            
+            with col2:
+                if st.button("Ajouter à la fin"):
+                    if current_content:
+                        new_content = current_content + "\n\n" + st.session_state.generated_content
+                    else:
+                        new_content = st.session_state.generated_content
+                    
+                    # Mise à jour du contenu
+                    current_section["content"] = new_content
+                    
+                    # Sauvegarde du projet
+                    project_context.update_section(project_id, current_section_id, current_section)
+                    
+                    # Mise à jour des métadonnées
+                    project_context.update_project_metadata(project_id)
+                    
+                    # Sauvegarde de la version dans l'historique
+                    project_data = project_context.load_project(project_id)
+                    history_manager.save_version(
+                        project_id=project_id,
+                        project_data=project_data,
+                        description=f"Ajout de contenu généré pour la section: {current_section.get('title', 'Sans titre')}"
+                    )
+                    
+                    # Suppression du contenu généré de la session
+                    del st.session_state.generated_content
+                    
+                    st.success("Contenu ajouté avec succès!")
+                    st.rerun()
     
     # Navigation entre les sections
     st.markdown("---")
-    st.subheader("Navigation")
+    col1, col2, col3 = st.columns(3)
     
-    prev_col, next_col = st.columns(2)
-    
-    # Trouver l'index de la section actuelle
-    current_index = -1
-    for i, section in enumerate(sections):
-        if section.get("section_id") == section_id:
-            current_index = i
-            break
-    
-    with prev_col:
-        if current_index > 0:
-            prev_section = sections[current_index - 1]
-            if st.button(f"← Section précédente: {prev_section.get('title', 'Sans titre')}"):
-                st.session_state.current_section_id = prev_section.get("section_id", "")
+    with col1:
+        if current_section_index > 0:
+            if st.button("← Section précédente"):
+                st.session_state.current_section_id = sections[current_section_index - 1].get("section_id", "")
                 st.rerun()
     
-    with next_col:
-        if current_index < len(sections) - 1:
-            next_section = sections[current_index + 1]
-            if st.button(f"Section suivante: {next_section.get('title', 'Sans titre')} →"):
-                st.session_state.current_section_id = next_section.get("section_id", "")
+    with col2:
+        if current_section_index < len(sections) - 1:
+            if st.button("Section suivante →"):
+                st.session_state.current_section_id = sections[current_section_index + 1].get("section_id", "")
                 st.rerun()
+    
+    with col3:
+        if st.button("Passer à la révision de cette section"):
+            st.session_state.current_section_id = current_section_id
+            st.session_state.page = "revision"
+            st.rerun()
+    
+    # Analyse de densité qualitative
+    st.markdown("---")
+    st.subheader("Analyse de densité qualitative")
+    
+    try:
+        from modules.density_analyzer import render_density_analysis
+        render_density_analysis(current_section.get("content", ""), project_context, project_id)
+    except ImportError:
+        st.info("Le module d'analyse de densité qualitative n'est pas disponible. Veuillez installer les modules d'analyse de densité.")
+    
+    # Boutons de visualisation du document et de la timeline
+    st.markdown("---")
+    preview_col1, preview_col2 = st.columns(2)
+    
+    with preview_col1:
+        if st.button("📄 Prévisualiser le document complet"):
+            st.session_state.previous_page = st.session_state.page
+            st.session_state.page = "document_preview"
+            st.rerun()
+    
+    with preview_col2:
+        if st.button("📊 Voir l'évolution du document"):
+            st.session_state.previous_page = st.session_state.page
+            st.session_state.page = "document_timeline"
+            st.rerun()
+    
+    return
+
