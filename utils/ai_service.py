@@ -1,8 +1,8 @@
 import os
-import openai
 import json
 import time
 from typing import Dict, Any, Optional, List, Union
+from openai import OpenAI
 
 from utils.cache import DiskCache
 
@@ -39,11 +39,10 @@ def call_ai_safe(prompt: str,
     
     # Configuration de l'API OpenAI
     try:
-        openai.api_key = os.environ.get("OPENAI_API_KEY", "")
-        
         # Tentative avec OpenAI
         try:
-            response = openai.ChatCompletion.create(
+            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+            response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
@@ -53,7 +52,7 @@ def call_ai_safe(prompt: str,
             result = {
                 "text": response.choices[0].message.content,
                 "model": model,
-                "tokens": response.usage.total_tokens,
+                "tokens": response.usage.completion_tokens + response.usage.prompt_tokens,
                 "source": "openai"
             }
             
