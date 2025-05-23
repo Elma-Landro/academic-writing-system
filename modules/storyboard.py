@@ -1,7 +1,10 @@
+import streamlit as st
+from utils.ai_service import generate_academic_text
+from storyboard_generator import generate_automatic_storyboard, parse_storyboard_sections
+
 def render_storyboard(project_id, project_context, history_manager, adaptive_engine):
     """
-    Affiche l'interface de storyboard pour un projet avec génération automatique
-    et gestion de la structure narrative.
+    Affiche l'interface de storyboard pour un projet.
     
     Args:
         project_id: ID du projet
@@ -9,22 +12,48 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
         history_manager: Instance de HistoryManager
         adaptive_engine: Instance de AdaptiveEngine
     """
-    import streamlit as st
-    from utils.ai_service import generate_academic_text, call_ai_safe
-    
     st.title("Storyboard")
     
     # Chargement des données du projet
     project = project_context.load_project(project_id)
     
-    st.subheader(project.get("title", "Sans titre"))
+    # Affichage et modification du titre de l'article
+    current_title = project.get("title", "Sans titre")
+    new_title = st.text_input("Titre de l'article", value=current_title)
     
-    # Création des onglets pour les différentes fonctionnalités
-    storyboard_tabs = st.tabs(["Gestion des sections", "Génération automatique (STORYBOARD ENGINE v1)"])
+    # Mise à jour du titre si modifié
+    if new_title != current_title:
+        project["title"] = new_title
+        project_context.save_project(project)
+        st.success("Titre mis à jour avec succès!")
     
-    # Onglet 1: Gestion des sections
-    with storyboard_tabs[0]:
+    # Onglets pour les différentes fonctionnalités
+    tab1, tab2, tab3 = st.tabs(["Gestion des sections", "Génération automatique (STORYBOARD ENGINE v1)", "Prévisualisation du document"])
+    
+    with tab1:
+        # Affichage et gestion de la structure existante
+        st.subheader("Structure existante")
+        
+        # Récupération de la structure existante
+        existing_structure = project.get("existing_structure", "")
+        
+        # Champ pour modifier la structure existante
+        new_structure = st.text_area(
+            "Structure existante (titres de sections et sous-sections)",
+            value=existing_structure,
+            placeholder="Exemple:\n# Introduction\n## Contexte\n## Problématique\n# État de l'art\n## Approches existantes\n## Limites actuelles\n# Méthodologie\n...",
+            height=200,
+            help="Utilisez # pour les titres de niveau 1, ## pour les titres de niveau 2, etc."
+        )
+        
+        # Mise à jour de la structure si modifiée
+        if new_structure != existing_structure:
+            project["existing_structure"] = new_structure
+            project_context.save_project(project)
+            st.success("Structure existante mise à jour avec succès!")
+        
         # Affichage des sections existantes
+        st.subheader("Sections du document")
         sections = project.get("sections", [])
         
         if sections:
@@ -33,20 +62,6 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
             for i, section in enumerate(sections):
                 with st.expander(f"{i+1}. {section.get('title', 'Sans titre')}"):
                     st.write(section.get("content", ""))
-                    
-                    # Affichage des thèses associées à cette section
-                    theses = section.get("theses", [])
-                    if theses:
-                        st.write("**Thèses principales:**")
-                        for thesis in theses:
-                            st.write(f"- {thesis.get('content', '')}")
-                            
-                            # Affichage des citations associées
-                            citations = thesis.get("citations", [])
-                            if citations:
-                                with st.expander("Citations associées"):
-                                    for citation in citations:
-                                        st.write(f"• *\"{citation.get('text', '')}\"* (p. {citation.get('page', 'N/A')})")
                     
                     col1, col2 = st.columns(2)
                     
@@ -177,228 +192,228 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
                 st.info("Fonctionnalité de réorganisation à implémenter.")
                 # Dans une vraie implémentation, on réorganiserait les sections ici
     
-    # Onglet 2: Génération automatique (STORYBOARD ENGINE v1)
-    with storyboard_tabs[1]:
+    with tab2:
         st.subheader("STORYBOARD ENGINE v1")
-        st.write("""
-        Générez automatiquement un storyboard académique à partir d'un document source, en suivant le pipeline de traitement en 5 étapes :
+        st.markdown("""
+        Générez automatiquement un storyboard académique à partir d'un document source, 
+        en suivant le pipeline de traitement en 5 étapes :
         
-        1. Identification des thèses à partir du document source
-        2. Association de citations marquantes pour chaque thèse
-        3. Fusion et articulation logique des thèses
-        4. Proposition d'un enchaînement de sections avec titres narratifs
-        5. Intégration des thèses dans les sections types
+        1. **Identification des thèses** à partir du document source
+        2. **Association de citations marquantes** pour chaque thèse
+        3. **Fusion et articulation logique** des thèses
+        4. **Proposition d'un enchaînement de sections** avec titres narratifs
+        5. **Intégration des thèses** dans les sections types
         """)
         
-        # Formulaire de génération automatique
-        with st.form("storyboard_generation_form"):
-            # Titre de l'article
-            article_title = st.text_input(
-                "Titre de l'article",
-                value=project.get("title", ""),
-                help="Le titre principal de votre document"
-            )
+        # Formulaire pour la génération automatique
+        with st.form("storyboard_generator_form"):
+            # Affichage du titre de l'article (lecture seule)
+            st.write(f"**Titre de l'article:** {project.get('title', 'Sans titre')}")
             
-            # Document source
-            document_source = st.text_area(
+            # Affichage de la structure existante si présente
+            existing_structure = project.get("existing_structure", "")
+            if existing_structure:
+                with st.expander("Structure existante (sera prise en compte dans la génération)"):
+                    st.text(existing_structure)
+            
+            document_text = st.text_area(
                 "Document source",
-                placeholder="Collez ici le texte de votre document source (thèse, article, etc.)"
+                placeholder="Collez ici le texte de votre document source (thèse, article, etc.)",
+                height=300
             )
             
-            # Problématique / Objectif
-            problem_statement = st.text_area(
-                "Problématique / Objectif",
-                placeholder="Décrivez la problématique ou l'objectif de votre article"
-            )
+            col1, col2 = st.columns(2)
             
-            # Structure existante
-            existing_structure = st.text_area(
-                "Structure existante (si disponible)",
-                placeholder="Entrez vos titres de sections et sous-sections, un par ligne. Exemple:\n\nIntroduction\n1. Contexte historique\n   1.1 Origines\n   1.2 Évolution\n2. Cadre théorique\n...",
-                help="Si vous avez déjà une structure en tête, entrez vos titres de sections et sous-sections"
-            )
+            with col1:
+                problem_statement = st.text_area(
+                    "Problématique / Objectif",
+                    placeholder="Décrivez la problématique ou l'objectif de votre article"
+                )
+                
+                extraction_level = st.slider(
+                    "Niveau de titre pour l'extraction des thèses",
+                    min_value=1,
+                    max_value=6,
+                    value=3
+                )
             
-            # Niveau de titre pour l'extraction des thèses
-            heading_level = st.slider(
-                "Niveau de titre pour l'extraction des thèses",
-                min_value=1,
-                max_value=6,
-                value=3,
-                help="Niveau de titre à partir duquel extraire les thèses (1=grands titres, 6=petits titres)"
-            )
+            with col2:
+                constraints = st.text_area(
+                    "Contraintes formelles",
+                    placeholder="Précisez les contraintes (nombre de caractères, format, etc.)"
+                )
+                
+                citations_per_item = st.slider(
+                    "Nombre de citations par thèse",
+                    min_value=1,
+                    max_value=8,
+                    value=5
+                )
             
-            # Contraintes formelles
-            formal_constraints = st.text_input(
-                "Contraintes formelles",
-                placeholder="Ex: 5000 caractères, 10 pages, etc.",
-                help="Contraintes de format pour votre document final"
-            )
-            
-            # Nombre de citations par thèse
-            citations_per_thesis = st.slider(
-                "Nombre de citations par thèse",
-                min_value=1,
-                max_value=10,
-                value=3,
-                help="Combien de citations extraire pour chaque thèse identifiée"
-            )
-            
-            # Bouton de génération
             generate_button = st.form_submit_button("Générer le storyboard")
             
             if generate_button:
-                if not document_source:
+                if not document_text:
                     st.error("Le document source est obligatoire.")
-                elif not problem_statement:
-                    st.error("La problématique ou l'objectif est obligatoire.")
                 else:
-                    with st.spinner("Génération du storyboard en cours..."):
-                        # Construction du prompt pour la génération du storyboard
-                        storyboard_prompt = f"""
-                        # STORYBOARD ENGINE v1
-                        
-                        ## Objectif
-                        Construire l'ossature narrative d'un article académique à partir du document source fourni, en identifiant et fusionnant les thèses principales, sous-thèses, et matériaux exemplaires.
-                        
-                        ## Inputs
-                        - Titre de l'article: {article_title}
-                        - Problématique/Objectif: {problem_statement}
-                        - Contraintes formelles: {formal_constraints}
-                        - Niveau de titre pour extraction: {heading_level}
-                        - Nombre de citations par thèse: {citations_per_thesis}
-                        
-                        ## Structure existante (si fournie)
-                        {existing_structure if existing_structure else "Aucune structure existante fournie."}
-                        
-                        ## Document source
-                        {document_source[:10000]}  # Limitation pour éviter de dépasser les contraintes de tokens
-                        
-                        ## Instructions
-                        1. Identifie les thèses principales à partir du document source
-                        2. Associe {citations_per_thesis} citations marquantes à chaque thèse (avec numéro de page si disponible)
-                        3. Fusionne et articule logiquement les thèses pour créer une ossature cohérente
-                        4. Propose un enchaînement de sections avec titres narratifs provisoires
-                        5. Intègre les thèses dans les sections types (intro, méthodo, etc.)
-                        
-                        ## Format de sortie
-                        Fournis un tableau synthétique avec:
-                        1. Les thèses et l'arc narratif
-                        2. Les citations associées (avec pages)
-                        3. Les sections de rattachement
-                        
-                        Puis propose une structuration narrative complète avec:
-                        1. Titre de l'article (amélioré si nécessaire)
-                        2. Plan argumentatif détaillé
-                        """
-                        
-                        # Appel à l'API pour générer le storyboard
-                        result = call_ai_safe(
-                            prompt=storyboard_prompt,
-                            max_tokens=4000,
-                            temperature=0.7,
-                            model="gpt-4o"
+                    with st.spinner("Génération du storyboard en cours... Cette opération peut prendre quelques minutes."):
+                        # Appel à la fonction de génération automatique avec titre et structure existante
+                        storyboard_result = generate_automatic_storyboard(
+                            document_text=document_text,
+                            problem_statement=problem_statement,
+                            constraints=constraints,
+                            extraction_level=extraction_level,
+                            citations_per_item=citations_per_item,
+                            title=project.get("title", "Sans titre"),
+                            existing_structure=project.get("existing_structure", "")
                         )
                         
-                        generated_storyboard = result.get("text", "")
+                        # Stockage temporaire du résultat dans la session
+                        st.session_state.storyboard_result = storyboard_result
                         
-                        if generated_storyboard:
-                            # Sauvegarde du storyboard généré dans la session
-                            st.session_state.generated_storyboard = generated_storyboard
-                            st.session_state.storyboard_metadata = {
-                                "article_title": article_title,
-                                "problem_statement": problem_statement,
-                                "existing_structure": existing_structure,
-                                "formal_constraints": formal_constraints
-                            }
-                            
-                            st.success("Storyboard généré avec succès!")
-                        else:
-                            st.error("Erreur lors de la génération du storyboard.")
+                        st.success("Storyboard généré avec succès!")
+                        st.rerun()
         
-        # Affichage du storyboard généré
-        if "generated_storyboard" in st.session_state:
+        # Affichage du résultat de la génération
+        if hasattr(st.session_state, 'storyboard_result'):
+            storyboard_result = st.session_state.storyboard_result
+            
             st.markdown("---")
-            st.subheader("Storyboard généré")
+            st.subheader("Résultat de la génération")
             
-            # Affichage des métadonnées utilisées
-            with st.expander("Structure utilisée pour la génération"):
-                metadata = st.session_state.storyboard_metadata
-                st.write(f"**Titre de l'article:** {metadata.get('article_title', '')}")
-                st.write(f"**Problématique:** {metadata.get('problem_statement', '')}")
-                
-                if metadata.get('existing_structure'):
-                    st.write("**Structure existante fournie:**")
-                    st.text(metadata.get('existing_structure', ''))
-                
-                st.write(f"**Contraintes formelles:** {metadata.get('formal_constraints', '')}")
+            # Affichage de la structure utilisée
+            if project.get("existing_structure", ""):
+                with st.expander("Structure existante utilisée"):
+                    st.text(project.get("existing_structure", ""))
             
-            # Affichage du storyboard
-            st.markdown(st.session_state.generated_storyboard)
+            # Affichage du tableau synthétique
+            if storyboard_result.get("table"):
+                with st.expander("Tableau synthétique", expanded=True):
+                    st.markdown(storyboard_result.get("table", ""))
             
-            # Bouton pour importer le storyboard dans le projet
-            if st.button("Importer dans le projet"):
-                # Analyse du storyboard généré pour extraire les sections, thèses et citations
-                # Cette partie serait idéalement implémentée avec un parser plus sophistiqué
+            # Affichage de la proposition de structure
+            if storyboard_result.get("structure"):
+                with st.expander("Proposition de structuration narrative", expanded=True):
+                    st.markdown(storyboard_result.get("structure", ""))
+            
+            # Affichage des sections proposées
+            if storyboard_result.get("sections"):
+                st.subheader("Sections proposées")
                 
-                # Pour cette démonstration, on utilise une approche simplifiée
-                # qui extrait les sections à partir des titres de niveau 2 (##)
-                import re
+                for i, section in enumerate(storyboard_result.get("sections", [])):
+                    with st.expander(f"{i+1}. {section.get('title', 'Section')}"):
+                        st.markdown(section.get("content", ""))
+            
+            # Bouton pour importer les sections dans le projet
+            if st.button("Importer les sections dans le projet"):
+                sections = parse_storyboard_sections(storyboard_result)
                 
-                # Mise à jour du titre du projet si nécessaire
-                if metadata.get('article_title') and metadata.get('article_title') != project.get('title'):
-                    project["title"] = metadata.get('article_title')
-                    project_context.save_project(project)
-                
-                # Extraction des sections à partir du storyboard généré
-                sections_pattern = r"##\s+(.*?)\n(.*?)(?=##|\Z)"
-                sections_matches = re.findall(sections_pattern, st.session_state.generated_storyboard, re.DOTALL)
-                
-                # Suppression des sections existantes si demandé
-                if sections and st.session_state.get("clear_existing_sections", False):
-                    for section in sections:
-                        project_context.delete_section(project_id, section.get("section_id", ""))
-                
-                # Création des nouvelles sections
-                for title, content in sections_matches:
-                    # Nettoyage du titre et du contenu
-                    title = title.strip()
-                    content = content.strip()
-                    
-                    # Extraction des thèses et citations (approche simplifiée)
-                    theses = []
-                    thesis_pattern = r"- (.*?)(?=\n-|\n\n|\Z)"
-                    thesis_matches = re.findall(thesis_pattern, content, re.DOTALL)
-                    
-                    for thesis_content in thesis_matches:
-                        thesis = {"content": thesis_content.strip()}
-                        
-                        # Extraction des citations pour cette thèse (approche simplifiée)
-                        citations = []
-                        citation_pattern = r"\*\"(.*?)\"\*\s*\(p\.\s*(\d+)\)"
-                        citation_matches = re.findall(citation_pattern, thesis_content, re.DOTALL)
-                        
-                        for citation_text, page in citation_matches:
-                            citations.append({
-                                "text": citation_text.strip(),
-                                "page": page.strip()
-                            })
-                        
-                        thesis["citations"] = citations
-                        theses.append(thesis)
-                    
-                    # Ajout de la section
-                    section_id = project_context.add_section(
+                # Ajout des sections au projet
+                for section in sections:
+                    project_context.add_section(
                         project_id=project_id,
-                        title=title,
-                        content=""  # Contenu vide, sera rempli lors de la rédaction
+                        title=section.get("title", ""),
+                        content=section.get("content", "")
                     )
-                    
-                    # Mise à jour de la section avec les thèses et citations
-                    section = project_context.get_section(project_id, section_id)
-                    section["theses"] = theses
-                    project_context.update_section_data(project_id, section_id, section)
                 
                 # Mise à jour des métadonnées
                 project_context.update_project_metadata(project_id)
                 
-     
+                # Mise à jour du statut du projet
+                project_context.update_project_status(project_id, "storyboard_ready")
+                
+                # Sauvegarde de la version dans l'historique
+                project_data = project_context.load_project(project_id)
+                history_manager.save_version(
+                    project_id=project_id,
+                    project_data=project_data,
+                    description="Import du storyboard généré automatiquement"
+                )
+                
+                st.success("Sections importées avec succès!")
+                
+                # Effacer le résultat temporaire
+                del st.session_state.storyboard_result
+                
+                st.rerun()
+    
+    # Onglet de prévisualisation du document
+    with tab3:
+        st.subheader("Prévisualisation du document en construction")
+        
+        # Importation du module de prévisualisation
+        try:
+            from modules.document_preview import render_document_preview
+            render_document_preview(project_id, project_context)
+        except ImportError:
+            st.info("Le module de prévisualisation n'est pas disponible. Veuillez installer les modules de visualisation continue.")
+    
+    # Suggestions du moteur adaptatif
+    st.markdown("---")
+    st.subheader("Suggestions pour votre storyboard")
+    
+    # Suggestions basées sur le type de projet
+    project_type = project.get("type", "Article académique")
+    
+    if project_type == "Article académique":
+        st.info("""
+        💡 **Structure recommandée pour un article académique:**
+        
+        1. Introduction (contexte, problématique, plan)
+        2. Revue de littérature / Cadre théorique
+        3. Méthodologie
+        4. Résultats
+        5. Discussion
+        6. Conclusion
+        """)
+    
+    elif project_type == "Mémoire" or project_type == "Thèse":
+        st.info("""
+        💡 **Structure recommandée pour un mémoire/thèse:**
+        
+        1. Introduction générale
+        2. Revue de littérature
+        3. Cadre théorique
+        4. Méthodologie
+        5. Résultats (plusieurs chapitres possibles)
+        6. Discussion
+        7. Conclusion générale
+        """)
+    
+    # Boutons de visualisation du document et de la timeline
+    st.markdown("---")
+    preview_col1, preview_col2 = st.columns(2)
+    
+    with preview_col1:
+        if st.button("📄 Prévisualiser le document complet"):
+            st.session_state.previous_page = st.session_state.page
+            st.session_state.page = "document_preview"
+            st.rerun()
+    
+    with preview_col2:
+        if st.button("📊 Voir l'évolution du document"):
+            st.session_state.previous_page = st.session_state.page
+            st.session_state.page = "document_timeline"
+            st.rerun()
+    
+    # Bouton pour terminer le storyboard
+    st.markdown("---")
+    
+    if st.button("Terminer le storyboard"):
+        # Mise à jour du statut du projet
+        project_context.update_project_status(project_id, "storyboard_ready")
+        
+        # Sauvegarde de la version dans l'historique
+        project_data = project_context.load_project(project_id)
+        history_manager.save_version(
+            project_id=project_id,
+            project_data=project_data,
+            description="Storyboard terminé"
+        )
+        
+        st.success("Storyboard terminé avec succès! Vous pouvez maintenant passer à la phase de rédaction.")
+        
+        # Redirection vers la page du projet
+        st.session_state.page = "project_overview"
+        st.rerun()
+
