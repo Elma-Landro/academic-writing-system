@@ -15,6 +15,11 @@ from modules.redaction import render_redaction
 from modules.revision import render_revision
 from modules.finalisation import render_finalisation
 
+# Import des nouveaux modules de visualisation
+from modules.visualization.document_preview import render_document_preview
+from modules.visualization.document_timeline_with_stats import render_document_timeline
+from modules.visualization.density_analyzer import render_density_analysis, render_density_settings
+
 # Configuration de la page Streamlit
 st.set_page_config(
     page_title="Système de Rédaction Académique",
@@ -239,7 +244,7 @@ elif st.session_state.page == "project_overview":
     # Boutons d'action
     st.markdown("---")
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     
     with col1:
         if st.button("Storyboard"):
@@ -259,6 +264,18 @@ elif st.session_state.page == "project_overview":
     with col4:
         if st.button("Finalisation"):
             st.session_state.page = "finalisation"
+            st.rerun()
+            
+    with col5:
+        if st.button("📄 Prévisualiser"):
+            st.session_state.previous_page = st.session_state.page
+            st.session_state.page = "document_preview"
+            st.rerun()
+            
+    with col6:
+        if st.button("📊 Timeline"):
+            st.session_state.previous_page = st.session_state.page
+            st.session_state.page = "document_timeline"
             st.rerun()
 
 elif st.session_state.page == "storyboard":
@@ -323,6 +340,73 @@ elif st.session_state.page == "finalisation":
         project_context=project_context,
         history_manager=history_manager
     )
+
+# Nouvelles pages pour les fonctionnalités de visualisation et d'analyse
+elif st.session_state.page == "document_preview":
+    # Vérification qu'un projet est sélectionné
+    if not st.session_state.current_project_id:
+        st.error("Aucun projet sélectionné.")
+        st.session_state.page = "home"
+        st.rerun()
+    
+    # Rendu du module de prévisualisation
+    render_document_preview(
+        project_id=st.session_state.current_project_id,
+        project_context=project_context
+    )
+    
+    # Bouton de retour
+    if st.button("Retour"):
+        if hasattr(st.session_state, 'previous_page'):
+            st.session_state.page = st.session_state.previous_page
+        else:
+            st.session_state.page = "project_overview"
+        st.rerun()
+
+elif st.session_state.page == "document_timeline":
+    # Vérification qu'un projet est sélectionné
+    if not st.session_state.current_project_id:
+        st.error("Aucun projet sélectionné.")
+        st.session_state.page = "home"
+        st.rerun()
+    
+    # Rendu du module de timeline
+    render_document_timeline(
+        project_id=st.session_state.current_project_id,
+        project_context=project_context,
+        history_manager=history_manager
+    )
+    
+    # Bouton de retour
+    if st.button("Retour"):
+        if hasattr(st.session_state, 'previous_page'):
+            st.session_state.page = st.session_state.previous_page
+        else:
+            st.session_state.page = "project_overview"
+        st.rerun()
+
+elif st.session_state.page == "density_settings":
+    # Vérification qu'un projet est sélectionné
+    if not st.session_state.current_project_id:
+        st.error("Aucun projet sélectionné.")
+        st.session_state.page = "home"
+        st.rerun()
+    
+    st.title("Paramètres d'analyse de densité")
+    
+    # Rendu des paramètres d'analyse de densité
+    render_density_settings(
+        project_context=project_context,
+        project_id=st.session_state.current_project_id
+    )
+    
+    # Bouton de retour
+    if st.button("Retour"):
+        if hasattr(st.session_state, 'previous_page'):
+            st.session_state.page = st.session_state.previous_page
+        else:
+            st.session_state.page = "project_overview"
+        st.rerun()
 
 elif st.session_state.page == "project_settings":
     # Vérification qu'un projet est sélectionné
@@ -454,165 +538,4 @@ elif st.session_state.page == "history":
             if entry.get("type") == "action":
                 st.markdown(f"**{timestamp}** - Action: {entry.get('action_type', '')}")
                 
-                if "details" in entry and entry["details"]:
-                    with st.expander("Détails"):
-                        for key, value in entry["details"].items():
-                            st.write(f"{key}: {value}")
-            
-            elif entry.get("type") == "version":
-                st.markdown(f"**{timestamp}** - Version: {entry.get('description', '')}")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    if st.button("Voir les différences", key=f"diff_{entry.get('id', '')}"):
-                        st.session_state.selected_version = entry.get("id", "")
-                        st.session_state.show_diff = True
-                
-                with col2:
-                    if st.button("Restaurer cette version", key=f"restore_{entry.get('id', '')}"):
-                        if history_manager.restore_version(
-                            project_id=st.session_state.current_project_id,
-                            version_id=entry.get("id", "")
-                        ):
-                            st.success("Version restaurée avec succès!")
-                            st.rerun()
-                        else:
-                            st.error("Erreur lors de la restauration de la version.")
-                
-                # Affichage des différences si demandé
-                if st.session_state.get("show_diff", False) and st.session_state.get("selected_version") == entry.get("id", ""):
-                    st.markdown("---")
-                    st.subheader("Différences")
-                    
-                    if "diff" in entry:
-                        st.code(entry["diff"], language="diff")
-                    else:
-                        st.write("Aucune différence disponible.")
-                    
-                    if st.button("Fermer"):
-                        st.session_state.show_diff = False
-                        st.rerun()
-        
-        # Bouton pour nettoyer l'historique
-        st.markdown("---")
-        st.subheader("Maintenance de l'historique")
-        
-        with st.expander("Options de nettoyage"):
-            keep_last_n = st.slider(
-                "Conserver les N dernières versions",
-                min_value=0,
-                max_value=20,
-                value=5,
-                step=1
-            )
-            
-            if st.button("Nettoyer l'historique"):
-                if history_manager.clear_history(
-                    project_id=st.session_state.current_project_id,
-                    keep_last_n=keep_last_n
-                ):
-                    st.success("Historique nettoyé avec succès!")
-                    st.rerun()
-                else:
-                    st.error("Erreur lors du nettoyage de l'historique.")
-
-elif st.session_state.page == "statistics":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
-    
-    st.title("Statistiques du projet")
-    
-    # Chargement des données du projet
-    project = project_context.load_project(st.session_state.current_project_id)
-    st.subheader(project.get("title", "Sans titre"))
-    
-    # Mise à jour des métadonnées du projet
-    project_context.update_project_metadata(st.session_state.current_project_id)
-    project = project_context.load_project(st.session_state.current_project_id)
-    
-    # Affichage des statistiques générales
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("Nombre de mots", project.get("metadata", {}).get("word_count", 0))
-    
-    with col2:
-        st.metric("Nombre de sections", len(project.get("sections", [])))
-    
-    with col3:
-        st.metric("Taux de complétion", f"{project.get('metadata', {}).get('completion_percentage', 0):.1f}%")
-    
-    # Statistiques par section
-    st.subheader("Statistiques par section")
-    
-    if not project.get("sections"):
-        st.write("Aucune section n'a encore été créée.")
-    else:
-        # Création d'un tableau de statistiques
-        data = []
-        for section in project.get("sections", []):
-            word_count = section.get("metadata", {}).get("word_count", 0)
-            revision_count = section.get("metadata", {}).get("revision_count", 0)
-            
-            data.append({
-                "Section": section.get("title", "Sans titre"),
-                "Mots": word_count,
-                "Révisions": revision_count,
-                "Dernière modification": section.get("last_modified", "")[:10]
-            })
-        
-        # Affichage du tableau
-        st.dataframe(data)
-    
-    # Analyse de complexité du texte
-    st.subheader("Analyse de complexité")
-    
-    # Concaténation de tout le contenu
-    all_content = "\n\n".join([section.get("content", "") for section in project.get("sections", [])])
-    
-    if not all_content:
-        st.write("Aucun contenu à analyser.")
-    else:
-        # Analyse de la complexité
-        complexity = adaptive_engine.analyze_text_complexity(all_content)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Phrases", complexity.get("sentence_count", 0))
-        
-        with col2:
-            st.metric("Longueur moyenne des phrases", f"{complexity.get('avg_sentence_length', 0):.1f} mots")
-        
-        with col3:
-            st.metric("Longueur moyenne des mots", f"{complexity.get('avg_word_length', 0):.1f} caractères")
-        
-        with col4:
-            st.metric("Score de complexité", f"{complexity.get('complexity_score', 0):.1f}/20")
-        
-        # Suggestions de style
-        st.subheader("Suggestions de style")
-        
-        target_style = project.get("preferences", {}).get("style", "Standard")
-        suggestions = adaptive_engine.suggest_style_improvements(all_content, target_style)
-        
-        for suggestion in suggestions:
-            st.info(f"💡 {suggestion}")
-        
-        # Suggestions de citations
-        st.subheader("Suggestions de citations")
-        
-        discipline = project.get("preferences", {}).get("discipline", "Sciences sociales")
-        citation_suggestions = adaptive_engine.suggest_citations(all_content, discipline)
-        
-        if not citation_suggestions:
-            st.write("Aucune suggestion de citation pour le moment.")
-        else:
-            for suggestion in citation_suggestions:
-                with st.expander(f"Citation suggérée: \"{suggestion.get('trigger', '')}\""):
-                    st.write(f"**Phrase:** {suggestion.get('sentence', '')}")
-                    st.write(f"**Suggestion:** {suggestion.get('suggestion', '')}")
+   
