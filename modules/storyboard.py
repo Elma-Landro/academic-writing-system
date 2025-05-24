@@ -343,10 +343,10 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
         
         # Importation du module de prévisualisation
         try:
-            from modules.document_preview import render_document_preview
+            from modules.visualization.document_preview import render_document_preview
             render_document_preview(project_id, project_context)
         except ImportError:
-            st.info("Le module de prévisualisation n'est pas disponible. Veuillez installer les modules de visualisation continue.")
+            st.info("Le module de prévisualisation n'est pas disponible. Veuillez installer les modules de visualisation.")
     
     # Suggestions du moteur adaptatif
     st.markdown("---")
@@ -380,19 +380,17 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
         7. Conclusion générale
         """)
     
-    # Boutons de visualisation du document et de la timeline
+    # Boutons d'accès à la visualisation complète et à la timeline
     st.markdown("---")
-    preview_col1, preview_col2 = st.columns(2)
+    col1, col2 = st.columns(2)
     
-    with preview_col1:
-        if st.button("📄 Prévisualiser le document complet"):
-            st.session_state.previous_page = st.session_state.page
+    with col1:
+        if st.button("Visualisation complète du document"):
             st.session_state.page = "document_preview"
             st.rerun()
     
-    with preview_col2:
-        if st.button("📊 Voir l'évolution du document"):
-            st.session_state.previous_page = st.session_state.page
+    with col2:
+        if st.button("Timeline d'évolution du document"):
             st.session_state.page = "document_timeline"
             st.rerun()
     
@@ -416,4 +414,3 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
         # Redirection vers la page du projet
         st.session_state.page = "project_overview"
         st.rerun()
-
