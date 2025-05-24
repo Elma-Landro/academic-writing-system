@@ -15,6 +15,7 @@ pandas==2.2.3
 numpy>=1.26.0
 matplotlib==3.9.2
 plotly==5.24.1
+nltk>=3.8.1
 
 # Traitement d'images
 pillow>=10.4.0
