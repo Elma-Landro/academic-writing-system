@@ -523,4 +523,4 @@ elif st.session_state.page == "redaction":
                 data=updated_project,
                 stage="redaction"
             )
-        except Exception as e
+        except Exception as e:
