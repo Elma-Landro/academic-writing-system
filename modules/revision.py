@@ -10,445 +10,501 @@ def render_revision(project_id, project_context, history_manager, adaptive_engin
     """
     import streamlit as st
     from utils.ai_service import generate_academic_text
-    import re
+    
+    st.title("Révision")
     
     # Chargement des données du projet
     project = project_context.load_project(project_id)
     
-    # Récupération des sections
-    sections = project.get("sections", [])
+    # Affichage du titre de l'article
+    st.subheader(project.get("title", "Sans titre"))
     
-    # Vérification qu'il y a des sections
-    if not sections:
-        st.warning("Aucune section n'a été créée. Veuillez d'abord créer des sections dans le storyboard.")
-        
-        if st.button("Retour au storyboard"):
-            st.session_state.page = "storyboard"
-            st.rerun()
-        
-        return
-    
-    # Récupération de la section actuelle
-    current_section_id = st.session_state.get("current_section_id")
-    
-    # Si aucune section n'est sélectionnée, prendre la première
-    if not current_section_id and sections:
-        current_section_id = sections[0].get("section_id", "")
-        st.session_state.current_section_id = current_section_id
-    
-    # Recherche de la section actuelle
-    current_section = None
-    current_section_index = 0
-    
-    for i, section in enumerate(sections):
-        if section.get("section_id", "") == current_section_id:
-            current_section = section
-            current_section_index = i
-            break
-    
-    # Vérification que la section existe
-    if not current_section:
-        st.warning("La section sélectionnée n'existe pas.")
-        
-        if st.button("Retour au storyboard"):
-            st.session_state.page = "storyboard"
-            st.rerun()
-        
-        return
-    
-    # Affichage du titre du projet et de la section
-    st.title(f"Révision: {project.get('title', 'Sans titre')}")
-    st.subheader(f"Section: {current_section.get('title', 'Sans titre')}")
-    
-    # Affichage de la structure existante si présente
+    # Récupération de la structure existante
     existing_structure = project.get("existing_structure", "")
     if existing_structure:
-        with st.expander("Structure du document"):
+        with st.expander("Structure existante du document", expanded=False):
             st.text(existing_structure)
+    
+    # Récupération de la section actuelle
+    current_section_id = st.session_state.get("current_section_id", None)
+    
+    if not current_section_id:
+        # Sélection d'une section à réviser
+        st.subheader("Sélectionner une section à réviser")
+        
+        sections = project.get("sections", [])
+        
+        if not sections:
+            st.warning("Aucune section n'a été créée. Veuillez d'abord créer des sections dans le storyboard.")
             
-            # Mise en évidence de la section actuelle dans la structure
-            section_title = current_section.get("title", "")
-            if section_title in existing_structure:
-                st.info(f"Section actuelle: {section_title}")
-    
-    # Récupération du contenu actuel
-    current_content = current_section.get("content", "")
-    
-    # Vérification que la section a du contenu
-    if not current_content:
-        st.warning("Cette section n'a pas de contenu. Veuillez d'abord rédiger du contenu.")
+            if st.button("Retour au storyboard"):
+                st.session_state.page = "storyboard"
+                st.rerun()
+                
+            return
         
-        if st.button("Aller à la rédaction"):
-            st.session_state.page = "redaction"
-            st.rerun()
+        # Affichage des sections disponibles
+        for i, section in enumerate(sections):
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                if st.button(f"{i+1}. {section.get('title', 'Sans titre')}", key=f"select_{section.get('section_id', '')}"):
+                    st.session_state.current_section_id = section.get("section_id", "")
+                    st.rerun()
+            
+            with col2:
+                # Affichage du statut de révision
+                revision_status = section.get("revision_status", "Non révisé")
+                
+                if revision_status == "Révisé":
+                    st.success("Révisé")
+                elif revision_status == "En cours":
+                    st.info("En cours")
+                else:
+                    st.warning("Non révisé")
+    else:
+        # Édition de la section sélectionnée
+        section = project_context.get_section(project_id, current_section_id)
         
-        return
-    
-    # Division du contenu en paragraphes
-    paragraphs = re.split(r'\n\s*\n', current_content)
-    
-    # Sélection du mode de révision
-    revision_mode = st.radio(
-        "Mode de révision",
-        ["Par paragraphe", "Section complète"],
-        horizontal=True
-    )
-    
-    if revision_mode == "Par paragraphe":
-        # Sélection du paragraphe à réviser
-        paragraph_index = st.session_state.get("paragraph_index", 0)
+        if not section:
+            st.error("Section introuvable.")
+            
+            if st.button("Retour à la sélection"):
+                st.session_state.current_section_id = None
+                st.rerun()
+                
+            return
         
-        # Vérification que l'index est valide
-        if paragraph_index >= len(paragraphs):
-            paragraph_index = 0
-            st.session_state.paragraph_index = 0
+        # Affichage du titre de la section
+        st.subheader(f"Révision: {section.get('title', 'Sans titre')}")
         
-        # Navigation entre les paragraphes
-        col1, col2, col3 = st.columns([1, 3, 1])
+        # Onglets pour les différentes fonctionnalités
+        tab1, tab2, tab3, tab4 = st.tabs(["Révision par paragraphe", "Révision complète", "Analyse de densité", "Prévisualisation"])
+        
+        with tab1:
+            st.subheader("Révision par paragraphe")
+            
+            # Découpage du contenu en paragraphes
+            content = section.get("content", "")
+            paragraphs = content.split("\n\n")
+            
+            # Affichage et édition des paragraphes
+            for i, paragraph in enumerate(paragraphs):
+                if paragraph.strip():  # Ignorer les paragraphes vides
+                    with st.expander(f"Paragraphe {i+1}", expanded=i == 0):
+                        # Affichage du paragraphe original
+                        st.markdown("**Paragraphe original:**")
+                        st.write(paragraph)
+                        
+                        # Analyse de densité qualitative du paragraphe
+                        try:
+                            from modules.visualization.density_analyzer import analyze_text_density
+                            density_score = analyze_text_density(paragraph)
+                            
+                            # Affichage du score de densité
+                            st.progress(density_score / 100)
+                            
+                            if density_score < 30:
+                                st.warning(f"Densité qualitative: {density_score}/100 - Texte peu dense")
+                            elif density_score < 60:
+                                st.info(f"Densité qualitative: {density_score}/100 - Densité moyenne")
+                            elif density_score < 80:
+                                st.success(f"Densité qualitative: {density_score}/100 - Bonne densité")
+                            else:
+                                st.success(f"Densité qualitative: {density_score}/100 - Excellente densité")
+                        except ImportError:
+                            pass
+                        
+                        # Formulaire d'édition du paragraphe
+                        with st.form(f"edit_paragraph_{i}"):
+                            # Édition du paragraphe
+                            new_paragraph = st.text_area(
+                                "Paragraphe révisé",
+                                value=paragraph,
+                                height=200
+                            )
+                            
+                            # Options de révision assistée
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                if st.form_submit_button("Enregistrer les modifications"):
+                                    # Mise à jour du paragraphe
+                                    paragraphs[i] = new_paragraph
+                                    
+                                    # Reconstruction du contenu
+                                    new_content = "\n\n".join(paragraphs)
+                                    
+                                    # Mise à jour de la section
+                                    project_context.update_section(
+                                        project_id=project_id,
+                                        section_id=current_section_id,
+                                        title=section.get("title", ""),
+                                        content=new_content
+                                    )
+                                    
+                                    # Mise à jour du statut de révision
+                                    section["revision_status"] = "En cours"
+                                    project_context.save_project(project)
+                                    
+                                    # Mise à jour des métadonnées
+                                    project_context.update_project_metadata(project_id)
+                                    
+                                    # Sauvegarde de la version dans l'historique
+                                    project_data = project_context.load_project(project_id)
+                                    history_manager.save_version(
+                                        project_id=project_id,
+                                        project_data=project_data,
+                                        description=f"Révision du paragraphe {i+1} de la section: {section.get('title', '')}"
+                                    )
+                                    
+                                    st.success("Paragraphe mis à jour avec succès!")
+                                    st.rerun()
+                            
+                            with col2:
+                                revision_type = st.selectbox(
+                                    "Type de révision assistée",
+                                    [
+                                        "Aucune",
+                                        "Améliorer la clarté",
+                                        "Renforcer l'argumentation",
+                                        "Corriger la grammaire",
+                                        "Densifier le contenu",
+                                        "Simplifier le langage"
+                                    ],
+                                    key=f"revision_type_{i}"
+                                )
+                                
+                                if st.form_submit_button("Appliquer la révision assistée"):
+                                    if revision_type != "Aucune":
+                                        with st.spinner("Génération de la révision en cours..."):
+                                            # Construction du prompt
+                                            prompt = f"{revision_type} du paragraphe suivant: {paragraph}"
+                                            
+                                            # Génération du texte
+                                            result = generate_academic_text(
+                                                prompt=prompt,
+                                                style=project.get("preferences", {}).get("style", "Académique"),
+                                                length=len(paragraph.split()) + 20  # Légèrement plus long que l'original
+                                            )
+                                            
+                                            # Mise à jour du paragraphe
+                                            paragraphs[i] = result.get("text", paragraph)
+                                            
+                                            # Reconstruction du contenu
+                                            new_content = "\n\n".join(paragraphs)
+                                            
+                                            # Mise à jour de la section
+                                            project_context.update_section(
+                                                project_id=project_id,
+                                                section_id=current_section_id,
+                                                title=section.get("title", ""),
+                                                content=new_content
+                                            )
+                                            
+                                            # Mise à jour du statut de révision
+                                            section["revision_status"] = "En cours"
+                                            project_context.save_project(project)
+                                            
+                                            # Mise à jour des métadonnées
+                                            project_context.update_project_metadata(project_id)
+                                            
+                                            # Sauvegarde de la version dans l'historique
+                                            project_data = project_context.load_project(project_id)
+                                            history_manager.save_version(
+                                                project_id=project_id,
+                                                project_data=project_data,
+                                                description=f"Révision assistée ({revision_type}) du paragraphe {i+1} de la section: {section.get('title', '')}"
+                                            )
+                                            
+                                            st.success(f"Révision assistée ({revision_type}) appliquée avec succès!")
+                                            st.rerun()
+                                    else:
+                                        st.info("Veuillez sélectionner un type de révision assistée.")
+        
+        with tab2:
+            st.subheader("Révision complète")
+            
+            # Formulaire d'édition complète
+            with st.form("edit_complete_section"):
+                # Titre de la section
+                title = st.text_input("Titre de la section", value=section.get("title", ""))
+                
+                # Contenu de la section
+                content = st.text_area(
+                    "Contenu de la section",
+                    value=section.get("content", ""),
+                    height=400
+                )
+                
+                # Boutons de soumission
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    submit_button = st.form_submit_button("Enregistrer les modifications")
+                
+                with col2:
+                    cancel_button = st.form_submit_button("Annuler")
+            
+            # Traitement de la soumission
+            if submit_button:
+                if not title:
+                    st.error("Le titre est obligatoire.")
+                else:
+                    # Mise à jour de la section
+                    project_context.update_section(
+                        project_id=project_id,
+                        section_id=current_section_id,
+                        title=title,
+                        content=content
+                    )
+                    
+                    # Mise à jour du statut de révision
+                    section["revision_status"] = "Révisé"
+                    project_context.save_project(project)
+                    
+                    # Mise à jour des métadonnées
+                    project_context.update_project_metadata(project_id)
+                    
+                    # Mise à jour du statut du projet
+                    if project.get("status") == "redaction_in_progress":
+                        project_context.update_project_status(project_id, "revision_in_progress")
+                    
+                    # Sauvegarde de la version dans l'historique
+                    project_data = project_context.load_project(project_id)
+                    history_manager.save_version(
+                        project_id=project_id,
+                        project_data=project_data,
+                        description=f"Révision complète de la section: {title}"
+                    )
+                    
+                    st.success("Section mise à jour avec succès!")
+                    st.rerun()
+            
+            if cancel_button:
+                st.session_state.current_section_id = None
+                st.rerun()
+            
+            # Options de révision assistée
+            st.subheader("Révision assistée de la section complète")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                revision_type = st.selectbox(
+                    "Type de révision assistée",
+                    [
+                        "Améliorer la clarté",
+                        "Renforcer l'argumentation",
+                        "Corriger la grammaire",
+                        "Densifier le contenu",
+                        "Simplifier le langage",
+                        "Révision complète"
+                    ]
+                )
+            
+            with col2:
+                if st.button("Appliquer la révision assistée à toute la section"):
+                    with st.spinner("Génération de la révision en cours..."):
+                        # Construction du prompt
+                        prompt = f"{revision_type} de la section suivante: {section.get('content', '')}"
+                        
+                        # Génération du texte
+                        result = generate_academic_text(
+                            prompt=prompt,
+                            style=project.get("preferences", {}).get("style", "Académique"),
+                            length=len(section.get("content", "").split()) + 50  # Légèrement plus long que l'original
+                        )
+                        
+                        # Mise à jour de la section
+                        project_context.update_section(
+                            project_id=project_id,
+                            section_id=current_section_id,
+                            title=section.get("title", ""),
+                            content=result.get("text", "")
+                        )
+                        
+                        # Mise à jour du statut de révision
+                        section["revision_status"] = "Révisé"
+                        project_context.save_project(project)
+                        
+                        # Mise à jour des métadonnées
+                        project_context.update_project_metadata(project_id)
+                        
+                        # Mise à jour du statut du projet
+                        if project.get("status") == "redaction_in_progress":
+                            project_context.update_project_status(project_id, "revision_in_progress")
+                        
+                        # Sauvegarde de la version dans l'historique
+                        project_data = project_context.load_project(project_id)
+                        history_manager.save_version(
+                            project_id=project_id,
+                            project_data=project_data,
+                            description=f"Révision assistée ({revision_type}) de la section: {section.get('title', '')}"
+                        )
+                        
+                        st.success(f"Révision assistée ({revision_type}) appliquée avec succès!")
+                        st.rerun()
+        
+        with tab3:
+            st.subheader("Analyse de densité qualitative")
+            
+            # Analyse de densité qualitative
+            try:
+                from modules.visualization.density_analyzer import analyze_text_density, get_density_recommendations
+                
+                # Récupération du contenu
+                content = section.get("content", "")
+                
+                # Calcul du score de densité
+                density_score = analyze_text_density(content)
+                
+                # Affichage du score de densité
+                st.markdown(f"**Score de densité qualitative:** {density_score}/100")
+                st.progress(density_score / 100)
+                
+                # Affichage des recommandations
+                recommendations = get_density_recommendations(density_score)
+                
+                st.markdown("**Recommandations d'amélioration:**")
+                for recommendation in recommendations:
+                    st.markdown(f"- {recommendation}")
+                
+                # Analyse par paragraphe
+                st.subheader("Analyse par paragraphe")
+                
+                # Découpage du contenu en paragraphes
+                paragraphs = content.split("\n\n")
+                
+                # Analyse de chaque paragraphe
+                for i, paragraph in enumerate(paragraphs):
+                    if paragraph.strip():  # Ignorer les paragraphes vides
+                        with st.expander(f"Paragraphe {i+1}", expanded=False):
+                            # Calcul du score de densité du paragraphe
+                            paragraph_density = analyze_text_density(paragraph)
+                            
+                            # Affichage du score de densité
+                            st.markdown(f"**Score de densité:** {paragraph_density}/100")
+                            st.progress(paragraph_density / 100)
+                            
+                            # Affichage du paragraphe
+                            st.markdown("**Contenu:**")
+                            st.write(paragraph)
+                            
+                            # Affichage des recommandations
+                            paragraph_recommendations = get_density_recommendations(paragraph_density)
+                            
+                            st.markdown("**Recommandations:**")
+                            for recommendation in paragraph_recommendations:
+                                st.markdown(f"- {recommendation}")
+            except ImportError:
+                st.info("Le module d'analyse de densité n'est pas disponible. Veuillez installer les modules de visualisation.")
+        
+        with tab4:
+            st.subheader("Prévisualisation de la section")
+            
+            # Affichage du contenu formaté
+            st.markdown(section.get("content", ""))
+            
+            # Boutons d'accès à la visualisation complète et à la timeline
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("Visualisation complète du document"):
+                    st.session_state.page = "document_preview"
+                    st.rerun()
+            
+            with col2:
+                if st.button("Timeline d'évolution du document"):
+                    st.session_state.page = "document_timeline"
+                    st.rerun()
+        
+        # Boutons de navigation
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            if paragraph_index > 0:
-                if st.button("← Paragraphe précédent"):
-                    st.session_state.paragraph_index = paragraph_index - 1
-                    st.rerun()
+            if st.button("Retour à la sélection"):
+                st.session_state.current_section_id = None
+                st.rerun()
         
         with col2:
-            st.write(f"Paragraphe {paragraph_index + 1} sur {len(paragraphs)}")
+            if st.button("Marquer comme révisé"):
+                # Mise à jour du statut de révision
+                section["revision_status"] = "Révisé"
+                project_context.save_project(project)
+                
+                # Mise à jour du statut du projet
+                if project.get("status") == "redaction_in_progress":
+                    project_context.update_project_status(project_id, "revision_in_progress")
+                
+                # Sauvegarde de la version dans l'historique
+                project_data = project_context.load_project(project_id)
+                history_manager.save_version(
+                    project_id=project_id,
+                    project_data=project_data,
+                    description=f"Section marquée comme révisée: {section.get('title', '')}"
+                )
+                
+                st.success("Section marquée comme révisée!")
+                st.session_state.current_section_id = None
+                st.rerun()
         
         with col3:
-            if paragraph_index < len(paragraphs) - 1:
-                if st.button("Paragraphe suivant →"):
-                    st.session_state.paragraph_index = paragraph_index + 1
-                    st.rerun()
-        
-        # Affichage du paragraphe actuel
-        st.markdown("---")
-        st.subheader("Paragraphe à réviser")
-        
-        current_paragraph = paragraphs[paragraph_index]
-        
-        # Champ d'édition du paragraphe
-        new_paragraph = st.text_area(
-            "Contenu du paragraphe",
-            value=current_paragraph,
-            height=200
-        )
-        
-        # Analyse de densité qualitative du paragraphe
-        st.markdown("---")
-        st.subheader("Analyse de densité qualitative")
-        
-        try:
-            from modules.density_analyzer import render_density_analysis
-            render_density_analysis(new_paragraph, project_context, project_id)
-        except ImportError:
-            st.info("Le module d'analyse de densité qualitative n'est pas disponible. Veuillez installer les modules d'analyse de densité.")
-        
-        # Options de révision assistée
-        st.markdown("---")
-        st.subheader("Révision assistée")
-        
-        revision_options = st.multiselect(
-            "Options de révision",
-            [
-                "Améliorer la clarté",
-                "Renforcer l'argumentation",
-                "Ajouter des connecteurs logiques",
-                "Enrichir le vocabulaire académique",
-                "Corriger la grammaire et l'orthographe",
-                "Améliorer la structure des phrases",
-                "Densifier le contenu"
-            ],
-            default=["Améliorer la clarté", "Renforcer l'argumentation"]
-        )
-        
-        # Construction du prompt de révision
-        revision_prompt = f"Réviser le paragraphe suivant en {', '.join(revision_options).lower()}:\n\n{current_paragraph}"
-        
-        if st.button("Générer une révision"):
-            with st.spinner("Génération de la révision en cours..."):
-                result = generate_academic_text(
-                    prompt=revision_prompt,
-                    style=project.get("preferences", {}).get("style", "Académique"),
-                    length=len(current_paragraph.split())
-                )
-                
-                revised_paragraph = result.get("text", "")
-                
-                if revised_paragraph:
-                    st.session_state.revised_paragraph = revised_paragraph
-                    st.success("Révision générée avec succès!")
-                    st.rerun()
-                else:
-                    st.error("Erreur lors de la génération de la révision.")
-        
-        # Affichage de la révision générée
-        if hasattr(st.session_state, 'revised_paragraph'):
-            st.markdown("---")
-            st.subheader("Révision proposée")
-            
-            st.markdown(st.session_state.revised_paragraph)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("Accepter cette révision"):
-                    # Mise à jour du paragraphe
-                    paragraphs[paragraph_index] = st.session_state.revised_paragraph
-                    
-                    # Reconstruction du contenu
-                    new_content = "\n\n".join(paragraphs)
-                    
-                    # Mise à jour de la section
-                    current_section["content"] = new_content
-                    
-                    # Sauvegarde du projet
-                    project_context.update_section(project_id, current_section_id, current_section)
-                    
-                    # Mise à jour des métadonnées
-                    project_context.update_project_metadata(project_id)
-                    
-                    # Mise à jour du statut du projet
-                    if project.get("status") == "redaction_in_progress":
-                        project_context.update_project_status(project_id, "revision_in_progress")
-                    
-                    # Sauvegarde de la version dans l'historique
-                    project_data = project_context.load_project(project_id)
-                    history_manager.save_version(
-                        project_id=project_id,
-                        project_data=project_data,
-                        description=f"Révision du paragraphe {paragraph_index + 1} de la section: {current_section.get('title', 'Sans titre')}"
-                    )
-                    
-                    # Suppression de la révision de la session
-                    del st.session_state.revised_paragraph
-                    
-                    st.success("Révision acceptée avec succès!")
-                    st.rerun()
-            
-            with col2:
-                if st.button("Rejeter cette révision"):
-                    # Suppression de la révision de la session
-                    del st.session_state.revised_paragraph
-                    st.rerun()
-        
-        # Bouton d'enregistrement manuel
-        st.markdown("---")
-        if st.button("Enregistrer les modifications"):
-            # Mise à jour du paragraphe
-            paragraphs[paragraph_index] = new_paragraph
-            
-            # Reconstruction du contenu
-            new_content = "\n\n".join(paragraphs)
-            
-            # Mise à jour de la section
-            current_section["content"] = new_content
-            
-            # Sauvegarde du projet
-            project_context.update_section(project_id, current_section_id, current_section)
-            
-            # Mise à jour des métadonnées
-            project_context.update_project_metadata(project_id)
-            
-            # Mise à jour du statut du projet
-            if project.get("status") == "redaction_in_progress":
-                project_context.update_project_status(project_id, "revision_in_progress")
-            
-            # Sauvegarde de la version dans l'historique
-            project_data = project_context.load_project(project_id)
-            history_manager.save_version(
-                project_id=project_id,
-                project_data=project_data,
-                description=f"Modification manuelle du paragraphe {paragraph_index + 1} de la section: {current_section.get('title', 'Sans titre')}"
-            )
-            
-            st.success("Modifications enregistrées avec succès!")
-            st.rerun()
-    
-    else:  # Mode "Section complète"
-        # Affichage de la section complète
-        st.markdown("---")
-        st.subheader("Section complète")
-        
-        # Champ d'édition du contenu
-        new_content = st.text_area(
-            "Contenu de la section",
-            value=current_content,
-            height=500
-        )
-        
-        # Analyse de densité qualitative de la section
-        st.markdown("---")
-        st.subheader("Analyse de densité qualitative")
-        
-        try:
-            from modules.density_analyzer import render_density_analysis
-            render_density_analysis(new_content, project_context, project_id)
-        except ImportError:
-            st.info("Le module d'analyse de densité qualitative n'est pas disponible. Veuillez installer les modules d'analyse de densité.")
-        
-        # Options de révision assistée
-        st.markdown("---")
-        st.subheader("Révision assistée")
-        
-        revision_options = st.multiselect(
-            "Options de révision",
-            [
-                "Améliorer la clarté",
-                "Renforcer l'argumentation",
-                "Ajouter des connecteurs logiques",
-                "Enrichir le vocabulaire académique",
-                "Corriger la grammaire et l'orthographe",
-                "Améliorer la structure des phrases",
-                "Densifier le contenu"
-            ],
-            default=["Améliorer la clarté", "Renforcer l'argumentation"]
-        )
-        
-        # Construction du prompt de révision
-        revision_prompt = f"Réviser la section suivante en {', '.join(revision_options).lower()}:\n\n{current_content}"
-        
-        if st.button("Générer une révision"):
-            with st.spinner("Génération de la révision en cours..."):
-                result = generate_academic_text(
-                    prompt=revision_prompt,
-                    style=project.get("preferences", {}).get("style", "Académique"),
-                    length=len(current_content.split())
-                )
-                
-                revised_content = result.get("text", "")
-                
-                if revised_content:
-                    st.session_state.revised_content = revised_content
-                    st.success("Révision générée avec succès!")
-                    st.rerun()
-                else:
-                    st.error("Erreur lors de la génération de la révision.")
-        
-        # Affichage de la révision générée
-        if hasattr(st.session_state, 'revised_content'):
-            st.markdown("---")
-            st.subheader("Révision proposée")
-            
-            st.markdown(st.session_state.revised_content)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("Accepter cette révision"):
-                    # Mise à jour du contenu
-                    current_section["content"] = st.session_state.revised_content
-                    
-                    # Sauvegarde du projet
-                    project_context.update_section(project_id, current_section_id, current_section)
-                    
-                    # Mise à jour des métadonnées
-                    project_context.update_project_metadata(project_id)
-                    
-                    # Mise à jour du statut du projet
-                    if project.get("status") == "redaction_in_progress":
-                        project_context.update_project_status(project_id, "revision_in_progress")
-                    
-                    # Sauvegarde de la version dans l'historique
-                    project_data = project_context.load_project(project_id)
-                    history_manager.save_version(
-                        project_id=project_id,
-                        project_data=project_data,
-                        description=f"Révision complète de la section: {current_section.get('title', 'Sans titre')}"
-                    )
-                    
-                    # Suppression de la révision de la session
-                    del st.session_state.revised_content
-                    
-                    st.success("Révision acceptée avec succès!")
-                    st.rerun()
-            
-            with col2:
-                if st.button("Rejeter cette révision"):
-                    # Suppression de la révision de la session
-                    del st.session_state.revised_content
-                    st.rerun()
-        
-        # Bouton d'enregistrement manuel
-        st.markdown("---")
-        if st.button("Enregistrer les modifications"):
-            # Mise à jour du contenu
-            current_section["content"] = new_content
-            
-            # Sauvegarde du projet
-            project_context.update_section(project_id, current_section_id, current_section)
-            
-            # Mise à jour des métadonnées
-            project_context.update_project_metadata(project_id)
-            
-            # Mise à jour du statut du projet
-            if project.get("status") == "redaction_in_progress":
-                project_context.update_project_status(project_id, "revision_in_progress")
-            
-            # Sauvegarde de la version dans l'historique
-            project_data = project_context.load_project(project_id)
-            history_manager.save_version(
-                project_id=project_id,
-                project_data=project_data,
-                description=f"Modification manuelle de la section: {current_section.get('title', 'Sans titre')}"
-            )
-            
-            st.success("Modifications enregistrées avec succès!")
-            st.rerun()
-    
-    # Navigation entre les sections
-    st.markdown("---")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if current_section_index > 0:
-            if st.button("← Section précédente"):
-                st.session_state.current_section_id = sections[current_section_index - 1].get("section_id", "")
+            if st.button("Passer à la finalisation"):
+                st.session_state.page = "finalisation"
                 st.rerun()
     
-    with col2:
-        if st.button("Retour à la rédaction"):
-            st.session_state.page = "redaction"
-            st.rerun()
-    
-    with col3:
-        if current_section_index < len(sections) - 1:
-            if st.button("Section suivante →"):
-                st.session_state.current_section_id = sections[current_section_index + 1].get("section_id", "")
+    # Si aucune section n'est sélectionnée, afficher le statut global de révision
+    if not current_section_id:
+        st.markdown("---")
+        st.subheader("Statut global de révision")
+        
+        sections = project.get("sections", [])
+        total_sections = len(sections)
+        revised_sections = sum(1 for section in sections if section.get("revision_status") == "Révisé")
+        
+        if total_sections > 0:
+            progress = revised_sections / total_sections
+            st.progress(progress)
+            st.write(f"**{revised_sections}/{total_sections}** sections révisées")
+            
+            if revised_sections == total_sections:
+                st.success("Toutes les sections ont été révisées!")
+                
+                if st.button("Passer à la finalisation"):
+                    st.session_state.page = "finalisation"
+                    st.rerun()
+            else:
+                st.info(f"Il reste {total_sections - revised_sections} sections à réviser.")
+        
+        # Boutons d'accès à la visualisation complète et à la timeline
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Visualisation complète du document"):
+                st.session_state.page = "document_preview"
+                st.rerun()
+        
+        with col2:
+            if st.button("Timeline d'évolution du document"):
+                st.session_state.page = "document_timeline"
                 st.rerun()
     
-    # Boutons de visualisation du document et de la timeline
+    # Suggestions du moteur adaptatif
     st.markdown("---")
-    preview_col1, preview_col2 = st.columns(2)
+    st.subheader("Suggestions pour votre révision")
     
-    with preview_col1:
-        if st.button("📄 Prévisualiser le document complet"):
-            st.session_state.previous_page = st.session_state.page
-            st.session_state.page = "document_preview"
-            st.rerun()
+    # Suggestions basées sur le type de projet
+    project_type = project.get("type", "Article académique")
     
-    with preview_col2:
-        if st.button("📊 Voir l'évolution du document"):
-            st.session_state.previous_page = st.session_state.page
-            st.session_state.page = "document_timeline"
-            st.rerun()
-    
-    # Bouton pour passer à la finalisation
-    st.markdown("---")
-    if st.button("Passer à la finalisation"):
-        # Mise à jour du statut du projet
-        project_context.update_project_status(project_id, "revision_complete")
+    if project_type == "Article académique":
+        st.info("""
+        💡 **Conseils pour la révision académique:**
         
-        # Sauvegarde de la version dans l'historique
-        project_data = project_context.load_project(project_id)
-        history_manager.save_version(
-            project_id=project_id,
-            project_data=project_data,
-            description="Révision terminée"
-        )
-        
-        st.session_state.page = "finalisation"
-        st.rerun()
-    
-    return
-
+        - Vérifiez la cohérence de votre argumentation
+        - Assurez-vous que chaque paragraphe contribue à votre thèse principale
+        - Vérifiez la précision de vos citations et références
+        - Éliminez les répétitions et les redondances
+        - Assurez-vous que vos transitions entre les paragraphes sont fluides
+        """)
