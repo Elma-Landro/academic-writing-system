@@ -1,5 +1,9 @@
 # Interface utilisateur
 streamlit==1.39.0
+google-auth
+google-auth-oauthlib
+google-api-python-client
+streamlit-oauth
 
 # Intelligence artificielle
 openai==1.51.2
