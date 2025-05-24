@@ -2,7 +2,13 @@ import streamlit as st
 import os
 import uuid
 from datetime import datetime
+import sys
 
+# Ajout du répertoire courant au chemin de recherche Python
+# Cela permet d'importer les modules à la racine
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Importation des modules core existants
 from utils.common import sidebar
 from core.integration_layer import IntegrationLayer
 from core.user_profile import UserProfile
@@ -10,6 +16,7 @@ from core.project_context import ProjectContext
 from core.adaptive_engine import AdaptiveEngine
 from core.history_manager import HistoryManager
 
+# Importation des modules de rendu
 from modules.storyboard import render_storyboard
 from modules.redaction import render_redaction
 from modules.revision import render_revision
@@ -33,13 +40,19 @@ if "current_project_id" not in st.session_state:
 # Initialisation de l'authentification Google et du gestionnaire de sédimentation
 @st.cache_resource
 def init_auth_and_sedimentation():
-    from auth_manager import is_authenticated, get_credentials
-    from sedimentation_manager import SedimentationManager
-    
-    # Vérification de l'authentification
-    if is_authenticated():
-        return SedimentationManager()
-    return None
+    """Initialise l'authentification Google et le gestionnaire de sédimentation."""
+    try:
+        # Import absolu des modules d'authentification
+        import auth_manager
+        import sedimentation_manager
+        
+        # Vérification de l'authentification
+        if auth_manager.is_authenticated():
+            return sedimentation_manager.SedimentationManager()
+        return None
+    except Exception as e:
+        st.warning(f"Impossible d'initialiser l'authentification Google: {str(e)}")
+        return None
 
 # Récupération du gestionnaire de sédimentation si l'utilisateur est authentifié
 sedimentation_manager = init_auth_and_sedimentation()
@@ -104,19 +117,23 @@ def sidebar_with_auth(projects, current_project_id):
     
     # Ajout de la gestion de l'authentification Google
     st.sidebar.markdown("---")
-    from auth_manager import is_authenticated, logout
-    
-    if is_authenticated():
-        user_info = st.session_state.user_info
-        st.sidebar.write(f"👤 Connecté en tant que: {user_info.get('email')}")
-        if st.sidebar.button("Se déconnecter"):
-            logout()
-            st.rerun()
-    else:
-        st.sidebar.warning("Non connecté")
-        if st.sidebar.button("Se connecter avec Google"):
-            st.session_state.page = "login"
-            st.rerun()
+    try:
+        # Import absolu du module d'authentification
+        import auth_manager
+        
+        if auth_manager.is_authenticated():
+            user_info = st.session_state.user_info
+            st.sidebar.write(f"👤 Connecté en tant que: {user_info.get('email')}")
+            if st.sidebar.button("Se déconnecter"):
+                auth_manager.logout()
+                st.rerun()
+        else:
+            st.sidebar.warning("Non connecté")
+            if st.sidebar.button("Se connecter avec Google"):
+                st.session_state.page = "login"
+                st.rerun()
+    except Exception as e:
+        st.sidebar.warning(f"Authentification non disponible: {str(e)}")
     
     # Affichage du projet actuel
     if current_project_id:
@@ -208,39 +225,49 @@ if st.session_state.page == "home":
 
 elif st.session_state.page == "login":
     # Page de login Google
-    from auth_manager import create_oauth_flow, get_user_info
-    
-    st.title("Connexion au Système de Rédaction Académique")
-    
-    if not is_authenticated():
-        st.write("Veuillez vous connecter avec votre compte Google pour accéder au système.")
+    try:
+        # Import absolu des modules d'authentification
+        import auth_manager
         
-        # Création du flux OAuth
-        flow = create_oauth_flow()
-        auth_url, _ = flow.authorization_url(prompt='consent')
+        st.title("Connexion au Système de Rédaction Académique")
         
-        # Bouton de connexion
-        st.markdown(f"""
-        <a href="{auth_url}" target="_self">
-            <button style="background-color:#4285F4; color:white; border:none; padding:10px 20px; border-radius:5px;">
-                Se connecter avec Google
-            </button>
-        </a>
-        """, unsafe_allow_html=True)
-    else:
-        st.success(f"Connecté en tant que {st.session_state.user_info.get('email')}")
-        if st.button("Continuer"):
-            st.session_state.page = 'home'
+        if not auth_manager.is_authenticated():
+            st.write("Veuillez vous connecter avec votre compte Google pour accéder au système.")
+            
+            # Création du flux OAuth
+            flow = auth_manager.create_oauth_flow()
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            
+            # Bouton de connexion
+            st.markdown(f"""
+            <a href="{auth_url}" target="_self">
+                <button style="background-color:#4285F4; color:white; border:none; padding:10px 20px; border-radius:5px;">
+                    Se connecter avec Google
+                </button>
+            </a>
+            """, unsafe_allow_html=True)
+        else:
+            st.success(f"Connecté en tant que {st.session_state.user_info.get('email')}")
+            if st.button("Continuer"):
+                st.session_state.page = 'home'
+                st.rerun()
+    except Exception as e:
+        st.error(f"Erreur lors de l'initialisation de l'authentification: {str(e)}")
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = "home"
             st.rerun()
 
 elif st.session_state.page == "new_project":
     st.title("Créer un nouveau projet")
     
     # Vérification de l'authentification pour la sédimentation
-    from auth_manager import is_authenticated
-    
-    if not is_authenticated() and sedimentation_manager is None:
-        st.warning("Pour bénéficier de la sédimentation contextuelle et de la sauvegarde sur Google Drive, veuillez vous connecter avec votre compte Google.")
+    try:
+        import auth_manager
+        
+        if not auth_manager.is_authenticated() and sedimentation_manager is None:
+            st.warning("Pour bénéficier de la sédimentation contextuelle et de la sauvegarde sur Google Drive, veuillez vous connecter avec votre compte Google.")
+    except Exception as e:
+        st.warning(f"Authentification non disponible: {str(e)}")
     
     # Formulaire de création de projet
     with st.form("new_project_form"):
@@ -307,14 +334,17 @@ elif st.session_state.page == "new_project":
                     description="Création du projet"
                 )
                 
-                # Sauvegarde avec sédimentation si l'utilisateur est connecté
+                # Sauvegarde avec sédimentation si l'utilisateur est authentifié et le gestionnaire est disponible
                 if sedimentation_manager:
-                    sedimentation_manager.save_project_state(
-                        project_id=project_id,
-                        project_name=title,
-                        data=project_data,
-                        stage="creation"
-                    )
+                    try:
+                        sedimentation_manager.save_project_state(
+                            project_id=project_id,
+                            project_name=title,
+                            data=project_data,
+                            stage="creation"
+                        )
+                    except Exception as e:
+                        st.warning(f"Impossible de sauvegarder sur Google Drive: {str(e)}")
                 
                 # Redirection vers la page du projet
                 st.session_state.current_project_id = project_id
@@ -416,14 +446,17 @@ elif st.session_state.page == "project_overview":
     
     # Visualisation de la sédimentation si l'utilisateur est connecté
     if sedimentation_manager:
-        st.markdown("---")
-        st.subheader("Sédimentation contextuelle")
-        
-        if st.button("Afficher l'historique de sédimentation"):
-            sedimentation_manager.visualize_sedimentation(
-                project_id=st.session_state.current_project_id,
-                project_name=project.get("title", "Sans titre")
-            )
+        try:
+            st.markdown("---")
+            st.subheader("Sédimentation contextuelle")
+            
+            if st.button("Afficher l'historique de sédimentation"):
+                sedimentation_manager.visualize_sedimentation(
+                    project_id=st.session_state.current_project_id,
+                    project_name=project.get("title", "Sans titre")
+                )
+        except Exception as e:
+            st.warning(f"Impossible d'afficher la sédimentation: {str(e)}")
 
 elif st.session_state.page == "storyboard":
     # Vérification qu'un projet est sélectionné
@@ -445,15 +478,18 @@ elif st.session_state.page == "storyboard":
     
     # Sauvegarde avec sédimentation si l'utilisateur est connecté
     if sedimentation_manager:
-        # Rechargement du projet après modifications
-        updated_project = project_context.load_project(st.session_state.current_project_id)
-        
-        sedimentation_manager.save_project_state(
-            project_id=st.session_state.current_project_id,
-            project_name=project.get("title", "Sans titre"),
-            data=updated_project,
-            stage="storyboard"
-        )
+        try:
+            # Rechargement du projet après modifications
+            updated_project = project_context.load_project(st.session_state.current_project_id)
+            
+            sedimentation_manager.save_project_state(
+                project_id=st.session_state.current_project_id,
+                project_name=project.get("title", "Sans titre"),
+                data=updated_project,
+                stage="storyboard"
+            )
+        except Exception as e:
+            st.warning(f"Impossible de sauvegarder sur Google Drive: {str(e)}")
 
 elif st.session_state.page == "redaction":
     # Vérification qu'un projet est sélectionné
@@ -477,63 +513,14 @@ elif st.session_state.page == "redaction":
     
     # Sauvegarde avec sédimentation si l'utilisateur est connecté
     if sedimentation_manager:
-        # Rechargement du projet après modifications
-        updated_project = project_context.load_project(st.session_state.current_project_id)
-        
-        sedimentation_manager.save_project_state(
-            project_id=st.session_state.current_project_id,
-            project_name=project.get("title", "Sans titre"),
-            data=updated_project,
-            stage="redaction"
-        )
-
-elif st.session_state.page == "revision":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
-    
-    # Chargement des données du projet
-    project = project_context.load_project(st.session_state.current_project_id)
-    
-    # Rendu du module de révision
-    render_revision(
-        project_id=st.session_state.current_project_id,
-        section_id=st.session_state.get("current_section_id"),
-        project_context=project_context,
-        history_manager=history_manager,
-        adaptive_engine=adaptive_engine,
-        integration_layer=integration_layer
-    )
-    
-    # Sauvegarde avec sédimentation si l'utilisateur est connecté
-    if sedimentation_manager:
-        # Rechargement du projet après modifications
-        updated_project = project_context.load_project(st.session_state.current_project_id)
-        
-        sedimentation_manager.save_project_state(
-            project_id=st.session_state.current_project_id,
-            project_name=project.get("title", "Sans titre"),
-            data=updated_project,
-            stage="revision"
-        )
-
-elif st.session_state.page == "finalisation":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
-    
-    # Chargement des données du projet
-    project = project_context.load_project(st.session_state.current_project_id)
-    
-    # Rendu du module de finalisation
-    render_finalisation(
-        project_id=st.session_state.current_project_id,
-        project_context=project_context,
-        history_manager=history_manager
-    )
-    
-    # Sauvegarde avec sédime
+        try:
+            # Rechargement du projet après modifications
+            updated_project = project_context.load_project(st.session_state.current_project_id)
+            
+            sedimentation_manager.save_project_state(
+                project_id=st.session_state.current_project_id,
+                project_name=project.get("title", "Sans titre"),
+                data=updated_project,
+                stage="redaction"
+            )
+        except Exception as e
