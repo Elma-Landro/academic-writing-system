@@ -10,99 +10,93 @@ def render_finalisation(project_id, project_context, history_manager, adaptive_e
     """
     import streamlit as st
     from utils.ai_service import generate_academic_text
-    import pandas as pd
+    
+    st.title("Finalisation")
     
     # Chargement des données du projet
     project = project_context.load_project(project_id)
     
-    # Récupération des sections
-    sections = project.get("sections", [])
+    # Affichage du titre de l'article
+    st.subheader(project.get("title", "Sans titre"))
     
-    # Vérification qu'il y a des sections
-    if not sections:
+    # Récupération de la structure existante
+    existing_structure = project.get("existing_structure", "")
+    if existing_structure:
+        with st.expander("Structure existante du document", expanded=False):
+            st.text(existing_structure)
+    
+    # Vérification que toutes les sections ont été révisées
+    sections = project.get("sections", [])
+    total_sections = len(sections)
+    revised_sections = sum(1 for section in sections if section.get("revision_status") == "Révisé")
+    
+    if total_sections == 0:
         st.warning("Aucune section n'a été créée. Veuillez d'abord créer des sections dans le storyboard.")
         
         if st.button("Retour au storyboard"):
             st.session_state.page = "storyboard"
             st.rerun()
-        
+            
         return
     
-    # Affichage du titre du projet
-    st.title(f"Finalisation: {project.get('title', 'Sans titre')}")
-    
-    # Affichage de la structure existante si présente
-    existing_structure = project.get("existing_structure", "")
-    if existing_structure:
-        with st.expander("Structure du document"):
-            st.text(existing_structure)
+    if revised_sections < total_sections:
+        st.warning(f"Toutes les sections n'ont pas été révisées ({revised_sections}/{total_sections}). Il est recommandé de terminer la révision avant de passer à la finalisation.")
+        
+        if st.button("Retour à la révision"):
+            st.session_state.page = "revision"
+            st.rerun()
     
     # Onglets pour les différentes fonctionnalités
-    tab1, tab2, tab3, tab4 = st.tabs(["Vue d'ensemble", "Vérifications", "Exportation", "Analyse de densité"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Tableau récapitulatif", "Vérifications finales", "Génération de transitions", "Prévisualisation"])
     
     with tab1:
-        st.subheader("Vue d'ensemble du document")
+        st.subheader("Tableau récapitulatif des sections")
         
-        # Tableau récapitulatif des sections
+        # Création d'un tableau récapitulatif
         data = []
         
-        for section in sections:
-            content = section.get("content", "")
-            word_count = len(content.split())
-            char_count = len(content)
-            
-            # Analyse de densité qualitative
+        for i, section in enumerate(sections):
+            # Calcul de la densité qualitative
             try:
-                from modules.density_analyzer import analyze_text_density
-                density_score, density_category, density_color = analyze_text_density(content, project_context, project_id)
+                from modules.visualization.density_analyzer import analyze_text_density
+                density_score = analyze_text_density(section.get("content", ""))
             except ImportError:
-                density_score = 0
-                density_category = "N/A"
-                density_color = "#CCCCCC"
+                density_score = "N/A"
             
+            # Calcul du nombre de mots
+            word_count = len(section.get("content", "").split())
+            
+            # Statut de révision
+            revision_status = section.get("revision_status", "Non révisé")
+            
+            # Ajout des données au tableau
             data.append({
-                "Section": section.get("title", "Sans titre"),
+                "Numéro": i + 1,
+                "Titre": section.get("title", "Sans titre"),
                 "Mots": word_count,
-                "Caractères": char_count,
-                "Densité": f"{density_score:.1f}/100 ({density_category})"
+                "Densité": density_score if isinstance(density_score, str) else f"{density_score}/100",
+                "Statut": revision_status
             })
         
-        # Création du DataFrame
-        df = pd.DataFrame(data)
-        
-        # Ajout d'une ligne de total
-        total_words = df["Mots"].sum()
-        total_chars = df["Caractères"].sum()
-        
-        # Calcul de la densité moyenne
-        try:
-            from modules.density_analyzer import analyze_text_density
-            all_content = "\n\n".join([section.get("content", "") for section in sections])
-            avg_density_score, avg_density_category, _ = analyze_text_density(all_content, project_context, project_id)
-            avg_density = f"{avg_density_score:.1f}/100 ({avg_density_category})"
-        except ImportError:
-            avg_density = "N/A"
-        
-        df.loc[len(df)] = ["TOTAL", total_words, total_chars, avg_density]
-        
         # Affichage du tableau
-        st.dataframe(df)
+        st.table(data)
         
-        # Prévisualisation du document complet
-        st.markdown("---")
-        st.subheader("Prévisualisation du document")
+        # Calcul des statistiques globales
+        total_words = sum(item["Mots"] for item in data)
+        avg_density = sum(float(item["Densité"].split("/")[0]) for item in data if item["Densité"] != "N/A") / len(data) if len(data) > 0 else 0
         
-        # Importation du module de prévisualisation
-        try:
-            from modules.document_preview import render_document_preview
-            render_document_preview(project_id, project_context)
-        except ImportError:
-            st.info("Le module de prévisualisation n'est pas disponible. Veuillez installer les modules de visualisation continue.")
+        # Affichage des statistiques globales
+        st.markdown(f"**Nombre total de mots:** {total_words}")
+        st.markdown(f"**Densité qualitative moyenne:** {avg_density:.1f}/100")
+        
+        # Affichage de la progression de révision
+        st.progress(revised_sections / total_sections if total_sections > 0 else 0)
+        st.markdown(f"**Progression de la révision:** {revised_sections}/{total_sections} sections révisées")
     
     with tab2:
         st.subheader("Vérifications finales")
         
-        # Liste de vérifications
+        # Liste des vérifications à effectuer
         checks = [
             "Cohérence de la structure",
             "Transitions entre les sections",
@@ -113,236 +107,265 @@ def render_finalisation(project_id, project_context, history_manager, adaptive_e
         ]
         
         # Affichage des vérifications
-        for i, check in enumerate(checks):
-            check_key = f"check_{i}"
-            check_status = st.session_state.get(check_key, False)
-            
-            col1, col2 = st.columns([4, 1])
+        for check in checks:
+            col1, col2 = st.columns([3, 1])
             
             with col1:
-                st.checkbox(check, value=check_status, key=check_key)
+                st.markdown(f"**{check}**")
             
             with col2:
-                if st.button("Vérifier", key=f"verify_{i}"):
-                    # Simulation de vérification
-                    st.session_state[check_key] = True
-                    st.success(f"Vérification de '{check}' effectuée avec succès!")
+                if st.button("Vérifier", key=f"check_{check.replace(' ', '_')}"):
+                    with st.spinner(f"Vérification de {check} en cours..."):
+                        # Simulation de vérification (à remplacer par une vérification réelle)
+                        import time
+                        import random
+                        time.sleep(1)
+                        
+                        # Résultat aléatoire pour la démonstration
+                        result = random.choice(["OK", "Attention", "Problème"])
+                        
+                        if result == "OK":
+                            st.success(f"{check}: Aucun problème détecté")
+                        elif result == "Attention":
+                            st.warning(f"{check}: Quelques points à améliorer")
+                        else:
+                            st.error(f"{check}: Problèmes détectés")
         
-        # Vérification automatique
-        st.markdown("---")
-        if st.button("Vérifier automatiquement tout le document"):
-            with st.spinner("Vérification en cours..."):
-                # Simulation de vérification automatique
-                for i in range(len(checks)):
-                    st.session_state[f"check_{i}"] = True
+        # Vérification automatique de la densité qualitative
+        st.subheader("Analyse de densité qualitative")
+        
+        if st.button("Analyser la densité qualitative"):
+            try:
+                from modules.visualization.density_analyzer import analyze_project_density, get_density_recommendations
                 
-                st.success("Toutes les vérifications ont été effectuées avec succès!")
-        
-        # Génération de transitions
-        st.markdown("---")
+                # Récupération du score de densité global
+                density_score = analyze_project_density(project_id, project_context)
+                
+                # Affichage du score de densité
+                st.progress(density_score / 100)
+                
+                if density_score < 30:
+                    st.warning(f"Densité qualitative globale: {density_score}/100 - Texte peu dense")
+                elif density_score < 60:
+                    st.info(f"Densité qualitative globale: {density_score}/100 - Densité moyenne")
+                elif density_score < 80:
+                    st.success(f"Densité qualitative globale: {density_score}/100 - Bonne densité")
+                else:
+                    st.success(f"Densité qualitative globale: {density_score}/100 - Excellente densité")
+                
+                # Affichage des recommandations
+                recommendations = get_density_recommendations(density_score)
+                
+                st.markdown("**Recommandations d'amélioration:**")
+                for recommendation in recommendations:
+                    st.markdown(f"- {recommendation}")
+            except ImportError:
+                st.info("Le module d'analyse de densité n'est pas disponible. Veuillez installer les modules de visualisation.")
+    
+    with tab3:
         st.subheader("Génération de transitions")
         
-        # Sélection des sections
-        section_titles = [section.get("title", "Sans titre") for section in sections]
+        # Sélection des sections pour la transition
+        st.markdown("Sélectionnez deux sections consécutives pour générer une transition:")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            from_section = st.selectbox(
-                "De la section",
-                section_titles,
-                index=0
+            section1_index = st.selectbox(
+                "Section de départ",
+                range(len(sections)),
+                format_func=lambda i: f"{i+1}. {sections[i].get('title', 'Sans titre')}"
             )
         
         with col2:
-            to_section = st.selectbox(
-                "À la section",
-                section_titles,
-                index=min(1, len(section_titles) - 1)
+            section2_index = st.selectbox(
+                "Section d'arrivée",
+                range(len(sections)),
+                format_func=lambda i: f"{i+1}. {sections[i].get('title', 'Sans titre')}",
+                index=min(section1_index + 1, len(sections) - 1)
             )
         
-        if st.button("Générer une transition"):
-            if from_section == to_section:
-                st.warning("Veuillez sélectionner deux sections différentes.")
-            else:
+        # Vérification que les sections sont différentes
+        if section1_index == section2_index:
+            st.error("Veuillez sélectionner deux sections différentes.")
+        else:
+            # Récupération des sections
+            section1 = sections[section1_index]
+            section2 = sections[section2_index]
+            
+            # Affichage des extraits des sections
+            with st.expander("Extrait de la section de départ", expanded=True):
+                content1 = section1.get("content", "")
+                st.markdown(content1[-500:] if len(content1) > 500 else content1)
+            
+            with st.expander("Extrait de la section d'arrivée", expanded=True):
+                content2 = section2.get("content", "")
+                st.markdown(content2[:500] if len(content2) > 500 else content2)
+            
+            # Génération de la transition
+            if st.button("Générer une transition"):
                 with st.spinner("Génération de la transition en cours..."):
                     # Construction du prompt
-                    from_index = section_titles.index(from_section)
-                    to_index = section_titles.index(to_section)
-                    
-                    from_content = sections[from_index].get("content", "")
-                    to_content = sections[to_index].get("content", "")
-                    
-                    # Extraction des derniers et premiers paragraphes
-                    from_paragraphs = from_content.split("\n\n")
-                    to_paragraphs = to_content.split("\n\n")
-                    
-                    last_paragraph = from_paragraphs[-1] if from_paragraphs else ""
-                    first_paragraph = to_paragraphs[0] if to_paragraphs else ""
-                    
                     prompt = f"""
-                    Générer une transition académique entre ces deux sections:
+                    Générer une transition entre ces deux sections:
                     
-                    Section 1 ({from_section}), dernier paragraphe:
-                    {last_paragraph}
+                    Section 1 ({section1.get('title', '')}): {content1[-300:] if len(content1) > 300 else content1}
                     
-                    Section 2 ({to_section}), premier paragraphe:
-                    {first_paragraph}
-                    
-                    La transition doit être fluide, logique et maintenir la cohérence du discours académique.
+                    Section 2 ({section2.get('title', '')}): {content2[:300] if len(content2) > 300 else content2}
                     """
                     
-                    # Génération de la transition
+                    # Génération du texte
                     result = generate_academic_text(
                         prompt=prompt,
                         style=project.get("preferences", {}).get("style", "Académique"),
-                        length=100
+                        length=100  # Transition courte
                     )
                     
-                    transition = result.get("text", "")
+                    # Affichage du résultat
+                    st.subheader("Transition générée")
+                    st.write(result.get("text", ""))
                     
-                    if transition:
-                        st.session_state.transition = transition
-                        st.session_state.from_section = from_section
-                        st.session_state.to_section = to_section
-                        st.success("Transition générée avec succès!")
+                    # Bouton pour insérer la transition
+                    if st.button("Insérer la transition"):
+                        # Ajout de la transition à la fin de la première section
+                        new_content1 = content1 + "\n\n" + result.get("text", "")
+                        
+                        # Mise à jour de la section
+                        project_context.update_section(
+                            project_id=project_id,
+                            section_id=section1.get("section_id", ""),
+                            title=section1.get("title", ""),
+                            content=new_content1
+                        )
+                        
+                        # Mise à jour des métadonnées
+                        project_context.update_project_metadata(project_id)
+                        
+                        # Sauvegarde de la version dans l'historique
+                        project_data = project_context.load_project(project_id)
+                        history_manager.save_version(
+                            project_id=project_id,
+                            project_data=project_data,
+                            description=f"Ajout d'une transition entre les sections {section1_index+1} et {section2_index+1}"
+                        )
+                        
+                        st.success("Transition insérée avec succès!")
                         st.rerun()
-                    else:
-                        st.error("Erreur lors de la génération de la transition.")
-        
-        # Affichage de la transition générée
-        if hasattr(st.session_state, 'transition'):
-            st.markdown("---")
-            st.subheader(f"Transition de '{st.session_state.from_section}' à '{st.session_state.to_section}'")
-            
-            st.markdown(st.session_state.transition)
-            
-            if st.button("Insérer cette transition"):
-                # Recherche des sections
-                from_index = section_titles.index(st.session_state.from_section)
-                to_index = section_titles.index(st.session_state.to_section)
-                
-                # Mise à jour du contenu de la section de destination
-                to_content = sections[to_index].get("content", "")
-                new_content = st.session_state.transition + "\n\n" + to_content
-                
-                sections[to_index]["content"] = new_content
-                
-                # Sauvegarde du projet
-                project_context.update_section(project_id, sections[to_index].get("section_id", ""), sections[to_index])
-                
-                # Mise à jour des métadonnées
-                project_context.update_project_metadata(project_id)
-                
-                # Sauvegarde de la version dans l'historique
-                project_data = project_context.load_project(project_id)
-                history_manager.save_version(
-                    project_id=project_id,
-                    project_data=project_data,
-                    description=f"Ajout d'une transition entre '{st.session_state.from_section}' et '{st.session_state.to_section}'"
-                )
-                
-                # Suppression de la transition de la session
-                del st.session_state.transition
-                del st.session_state.from_section
-                del st.session_state.to_section
-                
-                st.success("Transition insérée avec succès!")
-                st.rerun()
-    
-    with tab3:
-        st.subheader("Exportation du document")
-        
-        # Options d'exportation
-        export_format = st.selectbox(
-            "Format d'exportation",
-            ["Markdown (.md)", "PDF (.pdf)", "Word (.docx)", "HTML (.html)"]
-        )
-        
-        # Options de style
-        style_options = st.multiselect(
-            "Options de style",
-            [
-                "Page de titre",
-                "Table des matières",
-                "Numérotation des pages",
-                "En-têtes et pieds de page",
-                "Bibliographie",
-                "Annexes"
-            ],
-            default=["Page de titre", "Table des matières", "Numérotation des pages"]
-        )
-        
-        # Bouton d'exportation
-        if st.button("Exporter le document"):
-            with st.spinner("Exportation en cours..."):
-                # Simulation d'exportation
-                st.success(f"Document exporté avec succès au format {export_format}!")
-                
-                # Dans une vraie implémentation, on générerait le fichier ici
-                # et on fournirait un lien de téléchargement
-                
-                st.download_button(
-                    label="Télécharger le document",
-                    data="Contenu du document exporté",
-                    file_name=f"{project.get('title', 'document')}.{export_format.split('.')[-1].lower()}",
-                    mime="text/plain"
-                )
     
     with tab4:
-        st.subheader("Analyse de densité qualitative")
+        st.subheader("Prévisualisation du document complet")
         
-        # Importation du module d'analyse de densité
+        # Importation du module de prévisualisation
         try:
-            from modules.density_analyzer import render_density_settings, render_density_analysis
-            
-            # Paramètres d'analyse de densité
-            render_density_settings(project_context, project_id)
-            
-            st.markdown("---")
-            st.subheader("Analyse du document complet")
-            
-            # Analyse du document complet
-            all_content = "\n\n".join([section.get("content", "") for section in sections])
-            render_density_analysis(all_content, project_context, project_id)
-            
-            # Analyse par section
-            st.markdown("---")
-            st.subheader("Analyse par section")
+            from modules.visualization.document_preview import render_document_preview
+            render_document_preview(project_id, project_context)
+        except ImportError:
+            # Affichage manuel du document complet
+            st.markdown(f"# {project.get('title', 'Sans titre')}")
             
             for section in sections:
-                with st.expander(section.get("title", "Sans titre")):
-                    render_density_analysis(section.get("content", ""), project_context, project_id)
+                st.markdown(f"## {section.get('title', 'Sans titre')}")
+                st.markdown(section.get("content", ""))
         
-        except ImportError:
-            st.info("Le module d'analyse de densité qualitative n'est pas disponible. Veuillez installer les modules d'analyse de densité.")
-    
-    # Boutons de visualisation de la timeline
-    st.markdown("---")
-    if st.button("📊 Voir l'évolution du document"):
-        st.session_state.previous_page = st.session_state.page
-        st.session_state.page = "document_timeline"
-        st.rerun()
-    
-    # Bouton pour terminer le projet
-    st.markdown("---")
-    if st.button("Terminer le projet"):
-        # Mise à jour du statut du projet
-        project_context.update_project_status(project_id, "completed")
+        # Boutons d'accès à la visualisation complète et à la timeline
+        col1, col2 = st.columns(2)
         
-        # Sauvegarde de la version dans l'historique
-        project_data = project_context.load_project(project_id)
-        history_manager.save_version(
-            project_id=project_id,
-            project_data=project_data,
-            description="Projet terminé"
+        with col1:
+            if st.button("Visualisation complète du document"):
+                st.session_state.page = "document_preview"
+                st.rerun()
+        
+        with col2:
+            if st.button("Timeline d'évolution du document"):
+                st.session_state.page = "document_timeline"
+                st.rerun()
+    
+    # Options d'exportation
+    st.markdown("---")
+    st.subheader("Exportation du document")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        export_format = st.selectbox(
+            "Format d'exportation",
+            ["Markdown", "PDF", "Word", "HTML"]
         )
-        
-        st.success("Projet terminé avec succès!")
-        
-        # Redirection vers la page du projet
-        st.session_state.page = "project_overview"
-        st.rerun()
     
-    return
-
+    with col2:
+        if st.button("Exporter"):
+            with st.spinner(f"Exportation en {export_format} en cours..."):
+                # Construction du document complet
+                document = f"# {project.get('title', 'Sans titre')}\n\n"
+                
+                for section in sections:
+                    document += f"## {section.get('title', 'Sans titre')}\n\n"
+                    document += f"{section.get('content', '')}\n\n"
+                
+                # Exportation selon le format
+                if export_format == "Markdown":
+                    # Sauvegarde en Markdown
+                    file_path = f"/tmp/{project.get('title', 'document').replace(' ', '_')}.md"
+                    with open(file_path, "w") as f:
+                        f.write(document)
+                    
+                    # Téléchargement du fichier
+                    with open(file_path, "r") as f:
+                        st.download_button(
+                            label="Télécharger le document Markdown",
+                            data=f.read(),
+                            file_name=f"{project.get('title', 'document').replace(' ', '_')}.md",
+                            mime="text/markdown"
+                        )
+                elif export_format == "PDF":
+                    st.info("Exportation PDF à implémenter.")
+                elif export_format == "Word":
+                    st.info("Exportation Word à implémenter.")
+                elif export_format == "HTML":
+                    st.info("Exportation HTML à implémenter.")
+    
+    # Boutons de navigation
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Retour à la révision"):
+            st.session_state.page = "revision"
+            st.rerun()
+    
+    with col2:
+        if st.button("Terminer le projet"):
+            # Mise à jour du statut du projet
+            project_context.update_project_status(project_id, "completed")
+            
+            # Sauvegarde de la version dans l'historique
+            project_data = project_context.load_project(project_id)
+            history_manager.save_version(
+                project_id=project_id,
+                project_data=project_data,
+                description="Finalisation du projet"
+            )
+            
+            st.success("Projet terminé avec succès!")
+            
+            # Redirection vers la page du projet
+            st.session_state.page = "project_overview"
+            st.rerun()
+    
+    # Suggestions du moteur adaptatif
+    st.markdown("---")
+    st.subheader("Suggestions pour la finalisation")
+    
+    # Suggestions basées sur le type de projet
+    project_type = project.get("type", "Article académique")
+    
+    if project_type == "Article académique":
+        st.info("""
+        💡 **Conseils pour la finalisation:**
+        
+        - Vérifiez la cohérence globale de votre argumentation
+        - Assurez-vous que l'introduction et la conclusion se répondent
+        - Vérifiez que toutes les citations sont correctement référencées
+        - Relisez une dernière fois pour détecter les erreurs typographiques
+        - Demandez à un collègue de relire votre document
+        """)
