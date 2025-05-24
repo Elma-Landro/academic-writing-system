@@ -111,12 +111,12 @@ def sidebar_with_auth(projects, current_project_id):
         st.sidebar.write(f"👤 Connecté en tant que: {user_info.get('email')}")
         if st.sidebar.button("Se déconnecter"):
             logout()
-            st.experimental_rerun()
+            st.rerun()
     else:
         st.sidebar.warning("Non connecté")
         if st.sidebar.button("Se connecter avec Google"):
             st.session_state.page = "login"
-            st.experimental_rerun()
+            st.rerun()
     
     # Affichage du projet actuel
     if current_project_id:
@@ -229,7 +229,9 @@ elif st.session_state.page == "login":
         """, unsafe_allow_html=True)
     else:
         st.success(f"Connecté en tant que {st.session_state.user_info.get('email')}")
-        st.button("Continuer", on_click=lambda: setattr(st.session_state, 'page', 'home'))
+        if st.button("Continuer"):
+            st.session_state.page = 'home'
+            st.rerun()
 
 elif st.session_state.page == "new_project":
     st.title("Créer un nouveau projet")
@@ -534,4 +536,4 @@ elif st.session_state.page == "finalisation":
         history_manager=history_manager
     )
     
-    # Sauveg
+    # Sauvegarde avec sédime
