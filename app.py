@@ -15,11 +15,6 @@ from modules.redaction import render_redaction
 from modules.revision import render_revision
 from modules.finalisation import render_finalisation
 
-# Import des nouveaux modules de visualisation
-from modules.visualization.document_preview import render_document_preview
-from modules.visualization.document_timeline_with_stats import render_document_timeline
-from modules.visualization.density_analyzer import render_density_analysis, render_density_settings
-
 # Configuration de la page Streamlit
 st.set_page_config(
     page_title="Système de Rédaction Académique",
@@ -34,6 +29,20 @@ if "page" not in st.session_state:
     
 if "current_project_id" not in st.session_state:
     st.session_state.current_project_id = None
+
+# Initialisation de l'authentification Google et du gestionnaire de sédimentation
+@st.cache_resource
+def init_auth_and_sedimentation():
+    from auth_manager import is_authenticated, get_credentials
+    from sedimentation_manager import SedimentationManager
+    
+    # Vérification de l'authentification
+    if is_authenticated():
+        return SedimentationManager()
+    return None
+
+# Récupération du gestionnaire de sédimentation si l'utilisateur est authentifié
+sedimentation_manager = init_auth_and_sedimentation()
 
 # Initialisation du système
 @st.cache_resource
@@ -55,8 +64,104 @@ integration_layer, user_profile, project_context, adaptive_engine, history_manag
 # Récupération de la liste des projets
 projects = project_context.get_all_projects()
 
-# Affichage de la barre latérale
-sidebar(projects, st.session_state.current_project_id)
+# Fonction modifiée pour la barre latérale avec authentification Google
+def sidebar_with_auth(projects, current_project_id):
+    # Code existant de la barre latérale
+    st.sidebar.title("Navigation")
+    
+    # Sélection de la page
+    pages = ["Accueil", "Mes projets", "Paramètres"]
+    selected_page = st.sidebar.radio("Aller à", pages)
+    
+    if selected_page == "Accueil" and st.session_state.page != "home":
+        st.session_state.page = "home"
+        st.rerun()
+    elif selected_page == "Mes projets" and st.session_state.page != "projects":
+        st.session_state.page = "projects"
+        st.rerun()
+    elif selected_page == "Paramètres" and st.session_state.page != "settings":
+        st.session_state.page = "settings"
+        st.rerun()
+    
+    # Affichage des projets
+    st.sidebar.title("Mes projets")
+    
+    if st.sidebar.button("➕ Nouveau projet"):
+        st.session_state.page = "new_project"
+        st.rerun()
+    
+    if projects:
+        for project in projects:
+            if st.sidebar.button(
+                project.get("title", "Sans titre"),
+                key=f"sidebar_{project.get('project_id', '')}"
+            ):
+                st.session_state.current_project_id = project.get("project_id", "")
+                st.session_state.page = "project_overview"
+                st.rerun()
+    else:
+        st.sidebar.info("Aucun projet disponible.")
+    
+    # Ajout de la gestion de l'authentification Google
+    st.sidebar.markdown("---")
+    from auth_manager import is_authenticated, logout
+    
+    if is_authenticated():
+        user_info = st.session_state.user_info
+        st.sidebar.write(f"👤 Connecté en tant que: {user_info.get('email')}")
+        if st.sidebar.button("Se déconnecter"):
+            logout()
+            st.experimental_rerun()
+    else:
+        st.sidebar.warning("Non connecté")
+        if st.sidebar.button("Se connecter avec Google"):
+            st.session_state.page = "login"
+            st.experimental_rerun()
+    
+    # Affichage du projet actuel
+    if current_project_id:
+        current_project = None
+        for project in projects:
+            if project.get("project_id", "") == current_project_id:
+                current_project = project
+                break
+        
+        if current_project:
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("Projet actuel")
+            st.sidebar.info(current_project.get("title", "Sans titre"))
+            
+            # Navigation dans le projet
+            if st.sidebar.button("Vue d'ensemble"):
+                st.session_state.page = "project_overview"
+                st.rerun()
+            
+            if st.sidebar.button("Storyboard"):
+                st.session_state.page = "storyboard"
+                st.rerun()
+            
+            if st.sidebar.button("Rédaction"):
+                st.session_state.page = "redaction"
+                st.rerun()
+            
+            if st.sidebar.button("Révision"):
+                st.session_state.page = "revision"
+                st.rerun()
+            
+            if st.sidebar.button("Finalisation"):
+                st.session_state.page = "finalisation"
+                st.rerun()
+            
+            if st.sidebar.button("Historique"):
+                st.session_state.page = "history"
+                st.rerun()
+            
+            if st.sidebar.button("Paramètres du projet"):
+                st.session_state.page = "project_settings"
+                st.rerun()
+
+# Affichage de la barre latérale avec authentification
+sidebar_with_auth(projects, st.session_state.current_project_id)
 
 # Gestion des différentes pages
 if st.session_state.page == "home":
@@ -80,6 +185,7 @@ if st.session_state.page == "home":
     - **Agent de Déploiement Théorique**: Rédaction assistée par IA
     - **Module de Révision**: Amélioration du style et de la cohérence
     - **Finalisation**: Export dans différents formats (PDF, DOCX, etc.)
+    - **Sédimentation Contextuelle**: Sauvegarde de l'évolution de votre projet sur Google Drive
     """)
     
     # Affichage des projets récents
@@ -99,9 +205,40 @@ if st.session_state.page == "home":
                     st.session_state.current_project_id = project.get("project_id", "")
                     st.session_state.page = "project_overview"
                     st.rerun()
+
+elif st.session_state.page == "login":
+    # Page de login Google
+    from auth_manager import create_oauth_flow, get_user_info
     
+    st.title("Connexion au Système de Rédaction Académique")
+    
+    if not is_authenticated():
+        st.write("Veuillez vous connecter avec votre compte Google pour accéder au système.")
+        
+        # Création du flux OAuth
+        flow = create_oauth_flow()
+        auth_url, _ = flow.authorization_url(prompt='consent')
+        
+        # Bouton de connexion
+        st.markdown(f"""
+        <a href="{auth_url}" target="_self">
+            <button style="background-color:#4285F4; color:white; border:none; padding:10px 20px; border-radius:5px;">
+                Se connecter avec Google
+            </button>
+        </a>
+        """, unsafe_allow_html=True)
+    else:
+        st.success(f"Connecté en tant que {st.session_state.user_info.get('email')}")
+        st.button("Continuer", on_click=lambda: setattr(st.session_state, 'page', 'home'))
+
 elif st.session_state.page == "new_project":
     st.title("Créer un nouveau projet")
+    
+    # Vérification de l'authentification pour la sédimentation
+    from auth_manager import is_authenticated
+    
+    if not is_authenticated() and sedimentation_manager is None:
+        st.warning("Pour bénéficier de la sédimentation contextuelle et de la sauvegarde sur Google Drive, veuillez vous connecter avec votre compte Google.")
     
     # Formulaire de création de projet
     with st.form("new_project_form"):
@@ -167,6 +304,15 @@ elif st.session_state.page == "new_project":
                     project_data=project_data,
                     description="Création du projet"
                 )
+                
+                # Sauvegarde avec sédimentation si l'utilisateur est connecté
+                if sedimentation_manager:
+                    sedimentation_manager.save_project_state(
+                        project_id=project_id,
+                        project_name=title,
+                        data=project_data,
+                        stage="creation"
+                    )
                 
                 # Redirection vers la page du projet
                 st.session_state.current_project_id = project_id
@@ -244,7 +390,7 @@ elif st.session_state.page == "project_overview":
     # Boutons d'action
     st.markdown("---")
     
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         if st.button("Storyboard"):
@@ -265,18 +411,17 @@ elif st.session_state.page == "project_overview":
         if st.button("Finalisation"):
             st.session_state.page = "finalisation"
             st.rerun()
-            
-    with col5:
-        if st.button("📄 Prévisualiser"):
-            st.session_state.previous_page = st.session_state.page
-            st.session_state.page = "document_preview"
-            st.rerun()
-            
-    with col6:
-        if st.button("📊 Timeline"):
-            st.session_state.previous_page = st.session_state.page
-            st.session_state.page = "document_timeline"
-            st.rerun()
+    
+    # Visualisation de la sédimentation si l'utilisateur est connecté
+    if sedimentation_manager:
+        st.markdown("---")
+        st.subheader("Sédimentation contextuelle")
+        
+        if st.button("Afficher l'historique de sédimentation"):
+            sedimentation_manager.visualize_sedimentation(
+                project_id=st.session_state.current_project_id,
+                project_name=project.get("title", "Sans titre")
+            )
 
 elif st.session_state.page == "storyboard":
     # Vérification qu'un projet est sélectionné
@@ -285,6 +430,9 @@ elif st.session_state.page == "storyboard":
         st.session_state.page = "home"
         st.rerun()
     
+    # Chargement des données du projet
+    project = project_context.load_project(st.session_state.current_project_id)
+    
     # Rendu du module de storyboard
     render_storyboard(
         project_id=st.session_state.current_project_id,
@@ -292,6 +440,18 @@ elif st.session_state.page == "storyboard":
         history_manager=history_manager,
         adaptive_engine=adaptive_engine
     )
+    
+    # Sauvegarde avec sédimentation si l'utilisateur est connecté
+    if sedimentation_manager:
+        # Rechargement du projet après modifications
+        updated_project = project_context.load_project(st.session_state.current_project_id)
+        
+        sedimentation_manager.save_project_state(
+            project_id=st.session_state.current_project_id,
+            project_name=project.get("title", "Sans titre"),
+            data=updated_project,
+            stage="storyboard"
+        )
 
 elif st.session_state.page == "redaction":
     # Vérification qu'un projet est sélectionné
@@ -299,6 +459,9 @@ elif st.session_state.page == "redaction":
         st.error("Aucun projet sélectionné.")
         st.session_state.page = "home"
         st.rerun()
+    
+    # Chargement des données du projet
+    project = project_context.load_project(st.session_state.current_project_id)
     
     # Rendu du module de rédaction
     render_redaction(
@@ -309,6 +472,18 @@ elif st.session_state.page == "redaction":
         adaptive_engine=adaptive_engine,
         integration_layer=integration_layer
     )
+    
+    # Sauvegarde avec sédimentation si l'utilisateur est connecté
+    if sedimentation_manager:
+        # Rechargement du projet après modifications
+        updated_project = project_context.load_project(st.session_state.current_project_id)
+        
+        sedimentation_manager.save_project_state(
+            project_id=st.session_state.current_project_id,
+            project_name=project.get("title", "Sans titre"),
+            data=updated_project,
+            stage="redaction"
+        )
 
 elif st.session_state.page == "revision":
     # Vérification qu'un projet est sélectionné
@@ -316,6 +491,9 @@ elif st.session_state.page == "revision":
         st.error("Aucun projet sélectionné.")
         st.session_state.page = "home"
         st.rerun()
+    
+    # Chargement des données du projet
+    project = project_context.load_project(st.session_state.current_project_id)
     
     # Rendu du module de révision
     render_revision(
@@ -326,6 +504,18 @@ elif st.session_state.page == "revision":
         adaptive_engine=adaptive_engine,
         integration_layer=integration_layer
     )
+    
+    # Sauvegarde avec sédimentation si l'utilisateur est connecté
+    if sedimentation_manager:
+        # Rechargement du projet après modifications
+        updated_project = project_context.load_project(st.session_state.current_project_id)
+        
+        sedimentation_manager.save_project_state(
+            project_id=st.session_state.current_project_id,
+            project_name=project.get("title", "Sans titre"),
+            data=updated_project,
+            stage="revision"
+        )
 
 elif st.session_state.page == "finalisation":
     # Vérification qu'un projet est sélectionné
@@ -334,208 +524,14 @@ elif st.session_state.page == "finalisation":
         st.session_state.page = "home"
         st.rerun()
     
+    # Chargement des données du projet
+    project = project_context.load_project(st.session_state.current_project_id)
+    
     # Rendu du module de finalisation
     render_finalisation(
         project_id=st.session_state.current_project_id,
         project_context=project_context,
         history_manager=history_manager
     )
-
-# Nouvelles pages pour les fonctionnalités de visualisation et d'analyse
-elif st.session_state.page == "document_preview":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
     
-    # Rendu du module de prévisualisation
-    render_document_preview(
-        project_id=st.session_state.current_project_id,
-        project_context=project_context
-    )
-    
-    # Bouton de retour
-    if st.button("Retour"):
-        if hasattr(st.session_state, 'previous_page'):
-            st.session_state.page = st.session_state.previous_page
-        else:
-            st.session_state.page = "project_overview"
-        st.rerun()
-
-elif st.session_state.page == "document_timeline":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
-    
-    # Rendu du module de timeline
-    render_document_timeline(
-        project_id=st.session_state.current_project_id,
-        project_context=project_context,
-        history_manager=history_manager
-    )
-    
-    # Bouton de retour
-    if st.button("Retour"):
-        if hasattr(st.session_state, 'previous_page'):
-            st.session_state.page = st.session_state.previous_page
-        else:
-            st.session_state.page = "project_overview"
-        st.rerun()
-
-elif st.session_state.page == "density_settings":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
-    
-    st.title("Paramètres d'analyse de densité")
-    
-    # Rendu des paramètres d'analyse de densité
-    render_density_settings(
-        project_context=project_context,
-        project_id=st.session_state.current_project_id
-    )
-    
-    # Bouton de retour
-    if st.button("Retour"):
-        if hasattr(st.session_state, 'previous_page'):
-            st.session_state.page = st.session_state.previous_page
-        else:
-            st.session_state.page = "project_overview"
-        st.rerun()
-
-elif st.session_state.page == "project_settings":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
-    
-    # Chargement des données du projet
-    project = project_context.load_project(st.session_state.current_project_id)
-    
-    st.title("Paramètres du projet")
-    st.subheader(project.get("title", "Sans titre"))
-    
-    # Formulaire de modification des paramètres
-    with st.form("project_settings_form"):
-        title = st.text_input("Titre du projet", value=project.get("title", ""))
-        description = st.text_area("Description", value=project.get("description", ""))
-        
-        project_type = st.selectbox(
-            "Type de projet",
-            ["Article académique", "Mémoire", "Thèse", "Rapport de recherche", "Autre"],
-            index=["Article académique", "Mémoire", "Thèse", "Rapport de recherche", "Autre"].index(project.get("type", "Article académique"))
-        )
-        
-        style = st.selectbox(
-            "Style d'écriture",
-            ["Standard", "Académique", "CRÉSUS-NAKAMOTO", "AcademicWritingCrypto"],
-            index=["Standard", "Académique", "CRÉSUS-NAKAMOTO", "AcademicWritingCrypto"].index(project.get("preferences", {}).get("style", "Standard"))
-        )
-        
-        discipline = st.selectbox(
-            "Discipline",
-            ["Sciences sociales", "Économie", "Droit", "Informatique", "Autre"],
-            index=["Sciences sociales", "Économie", "Droit", "Informatique", "Autre"].index(project.get("preferences", {}).get("discipline", "Sciences sociales"))
-        )
-        
-        preferred_length = st.slider(
-            "Longueur cible (mots)",
-            min_value=1000,
-            max_value=20000,
-            value=project.get("preferences", {}).get("preferred_length", 5000),
-            step=1000
-        )
-        
-        submitted = st.form_submit_button("Enregistrer les modifications")
-        
-        if submitted:
-            if not title:
-                st.error("Le titre est obligatoire.")
-            else:
-                # Mise à jour des données du projet
-                project["title"] = title
-                project["description"] = description
-                project["type"] = project_type
-                project["preferences"] = {
-                    "style": style,
-                    "discipline": discipline,
-                    "preferred_length": preferred_length
-                }
-                
-                # Sauvegarde du projet
-                project_context.save_project(project)
-                
-                # Sauvegarde de la version dans l'historique
-                history_manager.save_version(
-                    project_id=st.session_state.current_project_id,
-                    project_data=project,
-                    description="Modification des paramètres"
-                )
-                
-                st.success("Paramètres enregistrés avec succès!")
-                
-                # Redirection vers la page du projet
-                st.session_state.page = "project_overview"
-                st.rerun()
-    
-    # Bouton de suppression du projet
-    st.markdown("---")
-    st.subheader("Zone de danger")
-    
-    if st.button("Supprimer ce projet", type="primary", help="Cette action est irréversible!"):
-        if project_context.delete_project(st.session_state.current_project_id):
-            st.success("Projet supprimé avec succès!")
-            
-            # Redirection vers la page d'accueil
-            st.session_state.current_project_id = None
-            st.session_state.page = "home"
-            st.rerun()
-        else:
-            st.error("Erreur lors de la suppression du projet.")
-
-elif st.session_state.page == "history":
-    # Vérification qu'un projet est sélectionné
-    if not st.session_state.current_project_id:
-        st.error("Aucun projet sélectionné.")
-        st.session_state.page = "home"
-        st.rerun()
-    
-    st.title("Historique du projet")
-    
-    # Chargement des données du projet
-    project = project_context.load_project(st.session_state.current_project_id)
-    st.subheader(project.get("title", "Sans titre"))
-    
-    # Récupération de l'historique
-    history = history_manager.get_project_history(st.session_state.current_project_id)
-    
-    if not history:
-        st.write("Aucun historique disponible pour ce projet.")
-    else:
-        # Filtrage par type d'événement
-        event_type = st.radio(
-            "Type d'événement",
-            ["Tous", "Actions", "Versions"],
-            horizontal=True
-        )
-        
-        filtered_history = history
-        if event_type == "Actions":
-            filtered_history = [entry for entry in history if entry.get("type") == "action"]
-        elif event_type == "Versions":
-            filtered_history = [entry for entry in history if entry.get("type") == "version"]
-        
-        # Affichage de l'historique
-        for entry in filtered_history:
-            timestamp = datetime.fromisoformat(entry.get("timestamp", "")).strftime("%Y-%m-%d %H:%M:%S")
-            
-            if entry.get("type") == "action":
-                st.markdown(f"**{timestamp}** - Action: {entry.get('action_type', '')}")
-                
-   
+    # Sauveg
