@@ -1,5 +1,4 @@
 import streamlit as st
-st.write("✅ App bien lancée")
 import os
 import uuid
 from datetime import datetime
@@ -12,6 +11,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+st.write("✅ App bien lancée")
+
 # Gestion du retour OAuth (si code présent dans l’URL)
 # Gestion du retour OAuth (si code présent dans l’URL)
 if "code" in st.query_params:
