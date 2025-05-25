@@ -11,7 +11,34 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# Gestion du retour OAuth (si code présent dans l’URL)
+if "code" in st.query_params:
+    try:
+        import auth_manager
+        code = st.query_params["code"][0]
 
+        flow = auth_manager.create_oauth_flow()
+        flow.fetch_token(code=code)
+
+        credentials = flow.credentials
+        st.session_state.google_credentials = {
+            'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+            'scopes': credentials.scopes
+        }
+
+        user_info = auth_manager.get_user_info(credentials)
+        st.session_state.user_info = user_info
+
+        st.experimental_set_query_params()  # Nettoyer l’URL
+        st.experimental_rerun()
+
+    except Exception as e:
+        st.error(f"Erreur OAuth2 : {str(e)}")
+        
 st.markdown("### Debug OAuth")
 st.write("Query params:", st.query_params)
 st.write("User info:", st.session_state.get('user_info'))
