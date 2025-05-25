@@ -31,7 +31,8 @@ def create_oauth_flow():
     }
     
     # URL de redirection (doit correspondre à celle configurée dans GCP)
-    redirect_uri = st.secrets["google_oauth"]["redirect_uris"][1]  # Utilisez l'URL de production
+    redirect_uris = st.secrets["google_oauth"]["redirect_uris"]
+redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1] # Utilisez l'URL de production
     
     # Création du flux OAuth
     flow = Flow.from_client_config(
