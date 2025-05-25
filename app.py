@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime
 import sys
 
-st.write("TEST DEBUG : rien ne précède set_page_config")
 # Configuration de la page Streamlit
 st.set_page_config(
     page_title="Système de Rédaction Académique",
@@ -12,9 +11,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 st.write("✅ App bien lancée")
 
-# Gestion du retour OAuth (si code présent dans l’URL)
 # Gestion du retour OAuth (si code présent dans l’URL)
 if "code" in st.query_params:
     try:
