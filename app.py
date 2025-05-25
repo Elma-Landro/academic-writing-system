@@ -4,6 +4,11 @@ import uuid
 from datetime import datetime
 import sys
 
+st.markdown("### Debug OAuth")
+st.write("Query params:", st.experimental_get_query_params())
+st.write("User info:", st.session_state.get('user_info'))
+st.write("Google credentials:", st.session_state.get('google_credentials'))
+
 # Ajout du répertoire courant au chemin de recherche Python
 # Cela permet d'importer les modules à la racine
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
