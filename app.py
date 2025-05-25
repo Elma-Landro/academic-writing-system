@@ -771,7 +771,7 @@ if "code" in st.query_params:
         import auth_manager
         
         # Récupération du code d'autorisation
-        code = st.query_params["code"]
+        code = st.query_params["code"][0]
         
         # Création du flux OAuth
         flow = auth_manager.create_oauth_flow()
