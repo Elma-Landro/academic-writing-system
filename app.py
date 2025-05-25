@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 import sys
 
+# Configuration de la page Streamlit
 st.set_page_config(
     page_title="Système de Rédaction Académique",
     page_icon="📝",
@@ -33,14 +34,6 @@ from modules.storyboard import render_storyboard
 from modules.redaction import render_redaction
 from modules.revision import render_revision
 from modules.finalisation import render_finalisation
-
-# Configuration de la page Streamlit
-st.set_page_config(
-    page_title="Système de Rédaction Académique",
-    page_icon="📝",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Initialisation des variables de session
 if "page" not in st.session_state:
