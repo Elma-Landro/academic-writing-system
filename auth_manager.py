@@ -41,7 +41,7 @@ def create_oauth_flow():
         }
     },
     scopes=["https://www.googleapis.com/auth/userinfo.email"],
-    redirect_uri="https://ting-system-mael-rolland.streamlit.app"
+    redirect_uri="https://academic-writing-system-mael-rolland.streamlit.app"
 )
     
     return flow
