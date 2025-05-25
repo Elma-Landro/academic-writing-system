@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 import sys
 
+st.write("TEST DEBUG : rien ne précède set_page_config")
 # Configuration de la page Streamlit
 st.set_page_config(
     page_title="Système de Rédaction Académique",
