@@ -32,6 +32,26 @@ st.set_page_config(
 
 # Initialisation des variables de session
 if "page" not in st.session_state:
+
+# Gestion automatique de la redirection OAuth (callback Google)
+if "code" in st.query_params:
+    try:
+        import auth_manager
+
+        flow = auth_manager.create_oauth_flow()
+        flow.fetch_token(code=st.query_params["code"][0])
+
+        credentials = flow.credentials
+        user_info = auth_manager.get_user_info(credentials)
+
+        # Enregistrement dans la session
+        st.session_state.google_credentials = credentials.to_json()
+        st.session_state.user_info = user_info
+        st.session_state.page = "home"
+        st.rerun()
+    except Exception as e:
+        st.error(f"Erreur lors du traitement OAuth2 : {e}")
+
     st.session_state.page = "home"
     
 if "current_project_id" not in st.session_state:
