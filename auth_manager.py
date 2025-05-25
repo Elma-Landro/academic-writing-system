@@ -32,15 +32,14 @@ def create_oauth_flow():
 
     # URL de redirection (doit correspondre à celle configurée dans GCP)
     redirect_uris = st.secrets["google_oauth"]["redirect_uris"]
-    redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1]  # attention à l’indentation ici
+    redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1]
 
     # Création du flux OAuth
     flow = Flow.from_client_config(
         client_config,
-        scopes=["https://www.googleapis.com/auth/userinfo.email"],
+        scopes=SCOPES,  # Utilisation de la variable SCOPES
         redirect_uri=redirect_uri
     )
-
     return flow
 
 def get_user_info(credentials):
