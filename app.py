@@ -1,4 +1,5 @@
 import streamlit as st
+st.write("✅ App bien lancée")
 import os
 import uuid
 from datetime import datetime
