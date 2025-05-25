@@ -53,6 +53,7 @@ if "code" in st.query_params:
         # Nettoyage de l’URL
         st.experimental_set_query_params()
         st.experimental_rerun()
+        st.write("‼️ Si tu vois ceci, rerun n'a pas fonctionné correctement.")
 
     except Exception as e:
         st.error(f"❌ Erreur OAuth2 : {str(e)}")
