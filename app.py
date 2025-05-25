@@ -133,10 +133,11 @@ def sidebar_with_auth(projects, current_project_id):
                 auth_manager.logout()
                 st.rerun()
         else:
-            st.sidebar.warning("Non connecté")
-            if st.sidebar.button("Se connecter avec Google"):
-                st.session_state.page = "login"
-                st.rerun()
+    st.sidebar.warning("Non connecté")
+    if st.sidebar.button("Se connecter avec Google"):
+        flow = auth_manager.create_oauth_flow()
+        auth_url, _ = flow.authorization_url(prompt='consent')
+        st.markdown(f'<meta http-equiv="refresh" content="0; url={auth_url}">', unsafe_allow_html=True)
     except Exception as e:
         st.sidebar.warning(f"Authentification non disponible: {str(e)}")
     
