@@ -366,3 +366,10 @@ Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
 - Méthodologie Michelat pour la structure de workflow
 - Agent de Construction Sectionnelle pour les techniques de rédaction
 - OpenAI pour les services d'IA
+- 
+## Outil de diagnostic OAuth
+
+Ce dépôt inclut un fichier `auth_debug_tool.py` pour tester et vérifier la configuration OAuth Google (secrets, redirection, permissions, etc.).
+
+- Lancez-le temporairement à la place de `app.py` si vous rencontrez des problèmes d'authentification.
+- Aucun impact sur le fonctionnement de l'application principale.
