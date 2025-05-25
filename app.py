@@ -133,7 +133,7 @@ def sidebar_with_auth(projects, current_project_id):
                 auth_manager.logout()
                 st.rerun()
         else:
-        st.sidebar.warning("Non connecté")
+            st.sidebar.warning("Non connecté")
         if st.sidebar.button("Se connecter avec Google"):
             flow = auth_manager.create_oauth_flow()
             auth_url, _ = flow.authorization_url(prompt='consent')
