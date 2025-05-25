@@ -29,27 +29,27 @@ def create_oauth_flow():
             "redirect_uris": st.secrets["google_oauth"]["redirect_uris"]
         }
     }
-    
+
     # URL de redirection (doit correspondre à celle configurée dans GCP)
     redirect_uris = st.secrets["google_oauth"]["redirect_uris"]
-redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1] # Utilisez l'URL de production
-    
+    redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1]  # Utilisez l'URL de production
+
     # Création du flux OAuth
     flow = Flow.from_client_config(
-    {
-        "web": {
-            "client_id": st.secrets["google_oauth"]["client_id"],
-            "client_secret": st.secrets["google_oauth"]["client_secret"],
-            "auth_uri": st.secrets["google_oauth"]["auth_uri"],
-            "token_uri": st.secrets["google_oauth"]["token_uri"],
-            "auth_provider_x509_cert_url": st.secrets["google_oauth"]["auth_provider_x509_cert_url"],
-            "redirect_uris": st.secrets["google_oauth"]["redirect_uris"]
-        }
-    },
-    scopes=["https://www.googleapis.com/auth/userinfo.email"],
-    redirect_uri="https://academic-writing-system-mael-rolland.streamlit.app"
-)
-    
+        {
+            "web": {
+                "client_id": st.secrets["google_oauth"]["client_id"],
+                "client_secret": st.secrets["google_oauth"]["client_secret"],
+                "auth_uri": st.secrets["google_oauth"]["auth_uri"],
+                "token_uri": st.secrets["google_oauth"]["token_uri"],
+                "auth_provider_x509_cert_url": st.secrets["google_oauth"]["auth_provider_x509_cert_url"],
+                "redirect_uris": st.secrets["google_oauth"]["redirect_uris"]
+            }
+        },
+        scopes=["https://www.googleapis.com/auth/userinfo.email"],
+        redirect_uri=redirect_uri
+    )
+
     return flow
 
 def get_user_info(credentials):
