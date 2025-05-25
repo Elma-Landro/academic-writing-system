@@ -35,10 +35,14 @@ def create_oauth_flow():
     
     # Création du flux OAuth
     flow = Flow.from_client_config(
-        client_config,
-        scopes=SCOPES,
-        redirect_uri=redirect_uri
-    )
+    {
+        "web": {
+            ...
+        }
+    },
+    scopes=["https://www.googleapis.com/auth/userinfo.email"],
+    redirect_uri="https://ting-system-mael-rolland.streamlit.app"
+)
     
     return flow
 
