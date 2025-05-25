@@ -13,23 +13,27 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 # Gestion du retour OAuth (si code présent dans l’URL)
+# Gestion du retour OAuth (si code présent dans l’URL)
 if "code" in st.query_params:
     try:
         import auth_manager
         code = st.query_params["code"][0]
+        st.write("✅ Code OAuth reçu :", code)
 
         flow = auth_manager.create_oauth_flow()
+        st.write("✅ Flux OAuth créé avec succès")
+
         flow.fetch_token(code=code)
-
-        if not flow.credentials or not flow.credentials.token:
-            st.error("Erreur : aucun token OAuth n'a été récupéré.")
-            st.stop()
-
         credentials = flow.credentials
 
-        # Affichage temporaire pour debug
-        st.write("Détails OAuth :", credentials.__dict__)
+        # Vérification du token
+        if not credentials or not credentials.token:
+            st.error("❌ Aucun token OAuth récupéré.")
+            st.stop()
 
+        st.write("✅ Token récupéré :", credentials.token)
+
+        # Stockage dans la session
         st.session_state.google_credentials = {
             'token': credentials.token,
             'refresh_token': getattr(credentials, 'refresh_token', None),
@@ -41,15 +45,15 @@ if "code" in st.query_params:
 
         user_info = auth_manager.get_user_info(credentials)
         st.session_state.user_info = user_info
+        st.write("✅ Utilisateur connecté :", user_info.get("email", "inconnu"))
 
+        # Nettoyage de l’URL
         st.experimental_set_query_params()
         st.experimental_rerun()
 
     except Exception as e:
-        st.error(f"Erreur OAuth2 : {str(e)}")
-
-    except Exception as e:
-        st.error(f"Erreur OAuth2 : {str(e)}")
+        st.error(f"❌ Erreur OAuth2 : {str(e)}")
+        st.write("❌ Exception complète :", e)
         
 st.markdown("### Debug OAuth")
 st.write("Query params:", st.query_params)
