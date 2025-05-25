@@ -16,10 +16,8 @@ SCOPES = [
 ]
 
 def create_oauth_flow():
-    """Crée un flux OAuth pour l'authentification Google."""
-    redirect_uris = st.secrets["google_oauth"]["redirect_uris"]
-    redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1]
-
+    """Crée un flux OAuth pour l'authentification Google en utilisant les secrets Streamlit."""
+    # Récupération des secrets depuis Streamlit
     client_config = {
         "web": {
             "client_id": st.secrets["google_oauth"]["client_id"],
@@ -27,10 +25,15 @@ def create_oauth_flow():
             "auth_uri": st.secrets["google_oauth"]["auth_uri"],
             "token_uri": st.secrets["google_oauth"]["token_uri"],
             "auth_provider_x509_cert_url": st.secrets["google_oauth"]["auth_provider_x509_cert_url"],
-            "redirect_uris": redirect_uris
+            "redirect_uris": st.secrets["google_oauth"]["redirect_uris"]
         }
     }
 
+    # URL de redirection (doit correspondre à celle configurée dans GCP)
+    redirect_uris = st.secrets["google_oauth"]["redirect_uris"]
+    redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1]
+
+    # Création du flux OAuth
     flow = Flow.from_client_config(
         client_config,
         scopes=SCOPES,
@@ -48,7 +51,7 @@ def is_authenticated():
     return "google_credentials" in st.session_state
 
 def get_credentials():
-    """Retourne les credentials si dispo."""
+    """Récupère les identifiants de l'utilisateur connecté."""
     if is_authenticated():
         return Credentials.from_authorized_user_info(
             st.session_state.google_credentials
@@ -57,5 +60,7 @@ def get_credentials():
 
 def logout():
     """Déconnecte l'utilisateur."""
-    st.session_state.pop("google_credentials", None)
-    st.session_state.pop("user_info", None)
+    if 'google_credentials' in st.session_state:
+        del st.session_state.google_credentials
+    if 'user_info' in st.session_state:
+        del st.session_state.user_info
