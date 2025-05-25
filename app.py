@@ -51,6 +51,7 @@ if "code" in st.query_params:
         st.write("✅ Utilisateur connecté :", user_info.get("email", "inconnu"))
 
         # Nettoyage de l’URL
+        st.session_state.page = "home"
         st.experimental_set_query_params()
         st.experimental_rerun()
         st.write("‼️ Si tu vois ceci, rerun n'a pas fonctionné correctement.")
