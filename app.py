@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 
@@ -11,7 +10,7 @@ st.header("1. Checking Streamlit Secrets")
 try:
     if hasattr(st, 'secrets') and 'google_oauth' in st.secrets:
         st.success("✅ google_oauth section found in secrets!")
-
+        
         # Check each required field
         required_fields = ['client_id', 'client_secret', 'auth_uri', 'token_uri', 'redirect_uris']
         for field in required_fields:
@@ -28,14 +27,14 @@ try:
     else:
         st.error("❌ No google_oauth section found in secrets!")
         st.write("You need to add secrets in your Streamlit Cloud dashboard.")
-
+        
 except Exception as e:
     st.error(f"❌ Error checking secrets: {e}")
 
 # Check 2: Current URL
 st.header("2. Checking Current App URL")
-current_url = st.query_params.get_all()
-st.write("Query parameters:", current_url)
+query_params = st.query_params
+st.write("Query parameters:", query_params)
 
 # Check 3: Session State
 st.header("3. Checking Session State")
@@ -43,7 +42,7 @@ st.write("Current session state keys:")
 for key in st.session_state.keys():
     st.write(f"   - {key}")
 
-# Check 4: Environment
+# Check 4: Environment Info
 st.header("4. Environment Info")
 st.write(f"Python version: {os.sys.version}")
 st.write("Installed packages (OAuth related):")
@@ -64,7 +63,7 @@ st.header("5. Test Basic OAuth Flow")
 if st.button("Test OAuth Setup"):
     try:
         from streamlit_oauth import OAuth2Component
-
+        
         # Try to create OAuth component
         oauth2 = OAuth2Component(
             st.secrets["google_oauth"]["client_id"],
@@ -74,7 +73,7 @@ if st.button("Test OAuth Setup"):
             st.secrets["google_oauth"].get("redirect_uris", ""),
         )
         st.success("✅ OAuth component created successfully!")
-
+        
     except Exception as e:
         st.error(f"❌ Error creating OAuth component: {e}")
 
