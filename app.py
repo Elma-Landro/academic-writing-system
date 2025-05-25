@@ -20,21 +20,32 @@ if "code" in st.query_params:
         flow = auth_manager.create_oauth_flow()
         flow.fetch_token(code=code)
 
+        if not flow.credentials or not flow.credentials.token:
+            st.error("Erreur : aucun token OAuth n'a été récupéré.")
+            st.stop()
+
         credentials = flow.credentials
+
+        # Affichage temporaire pour debug
+        st.write("Détails OAuth :", credentials.__dict__)
+
         st.session_state.google_credentials = {
             'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
+            'refresh_token': getattr(credentials, 'refresh_token', None),
             'token_uri': credentials.token_uri,
             'client_id': credentials.client_id,
             'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes
+            'scopes': credentials.scopes,
         }
 
         user_info = auth_manager.get_user_info(credentials)
         st.session_state.user_info = user_info
 
-        st.experimental_set_query_params()  # Nettoyer l’URL
+        st.experimental_set_query_params()
         st.experimental_rerun()
+
+    except Exception as e:
+        st.error(f"Erreur OAuth2 : {str(e)}")
 
     except Exception as e:
         st.error(f"Erreur OAuth2 : {str(e)}")
