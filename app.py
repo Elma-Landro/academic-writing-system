@@ -33,8 +33,11 @@ except Exception as e:
 
 # Check 2: Current URL
 st.header("2. Checking Current App URL")
-current_url = st.query_params.get_all()
-st.write(f"Current page URL: `{st.runtime.get_instance().get_url()}`" if hasattr(st.runtime.get_instance(), 'get_url') else "URL check not available")
+try:
+    st.write("Query parameters:", dict(st.query_params))
+except Exception as e:
+    st.write(f"Query params error: {e}")
+st.write("App should be at: https://academic-writing-system-mael-rolland.streamlit.app")
 
 # Check 3: Session State
 st.header("3. Checking Session State")
