@@ -12,7 +12,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.write("✅ App bien lancée")
+st.title("🧪 Test d'affichage")
+st.write("✅ Interface Streamlit fonctionnelle")
+st.write("📄 Page actuelle :", st.session_state.get("page", "non définie"))
 
 # Gestion du retour OAuth (si code présent dans l’URL)
 if "code" in st.query_params:
