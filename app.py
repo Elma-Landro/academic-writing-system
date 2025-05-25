@@ -4,6 +4,13 @@ import uuid
 from datetime import datetime
 import sys
 
+st.set_page_config(
+    page_title="Système de Rédaction Académique",
+    page_icon="📝",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 st.markdown("### Debug OAuth")
 st.write("Query params:", st.experimental_get_query_params())
 st.write("User info:", st.session_state.get('user_info'))
