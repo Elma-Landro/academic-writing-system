@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.markdown("### Debug OAuth")
-st.write("Query params:", st.experimental_get_query_params())
+st.write("Query params:", st.query_params)
 st.write("User info:", st.session_state.get('user_info'))
 st.write("Google credentials:", st.session_state.get('google_credentials'))
 
