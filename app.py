@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import sys
@@ -25,39 +24,42 @@ if "current_project_id" not in st.session_state:
 if "code" in st.query_params:
     try:
         import auth_manager
+
         code = st.query_params["code"][0]
         st.write("✅ Code OAuth reçu :", code)
 
         flow = auth_manager.create_oauth_flow()
         st.write("✅ Flux OAuth créé avec succès")
+        st.write("→ Redirect URI utilisé :", flow.redirect_uri)
+        st.write("→ Client ID :", flow.client_config['web']['client_id'])
 
-        flow.fetch_token(code=code)
-        credentials = flow.credentials
+        if "token_fetched" not in st.session_state:
+            flow.fetch_token(code=code)
+            credentials = flow.credentials
 
-        # Vérification du token
-        if not credentials or not credentials.token:
-            st.error("❌ Aucun token OAuth récupéré.")
-            st.stop()
+            if not credentials or not credentials.token:
+                st.error("❌ Aucun token OAuth récupéré.")
+                st.stop()
 
-        st.write("✅ Token récupéré :", credentials.token)
+            st.session_state.token_fetched = True
 
-        # Stockage dans la session
-        st.session_state.google_credentials = {
-            'token': credentials.token,
-            'refresh_token': getattr(credentials, 'refresh_token', None),
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes,
-        }
+            st.session_state.google_credentials = {
+                'token': credentials.token,
+                'refresh_token': getattr(credentials, 'refresh_token', None),
+                'token_uri': credentials.token_uri,
+                'client_id': credentials.client_id,
+                'client_secret': credentials.client_secret,
+                'scopes': credentials.scopes,
+            }
 
-        user_info = auth_manager.get_user_info(credentials)
-        st.session_state.user_info = user_info
-        st.write("✅ Utilisateur connecté :", user_info.get("email", "inconnu"))
+            user_info = auth_manager.get_user_info(credentials)
+            st.session_state.user_info = user_info
+            st.success(f"✅ Utilisateur connecté : {user_info.get('email', 'inconnu')}")
 
-        st.session_state.page = "home"
-        st.experimental_set_query_params()
-        st.rerun()
+            st.experimental_set_query_params()
+            # st.experimental_rerun()  # Désactivé temporairement pour éviter double appel
+        else:
+            st.warning("⚠️ Le code OAuth a déjà été utilisé ou a expiré.")
 
     except Exception as e:
         st.error(f"❌ Erreur OAuth2 : {str(e)}")
