@@ -5,6 +5,8 @@ import sys
 from datetime import datetime
 import uuid
 
+import auth_manager
+
 # Obligatoire : doit être en premier
 st.set_page_config(
     page_title="Système de Rédaction Académique",
