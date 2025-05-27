@@ -1,13 +1,5 @@
-
-"""
-Module de gestion de l'authentification Google.
-Permet la connexion des utilisateurs via Google OAuth.
-"""
-
 import streamlit as st
-from google_auth_oauthlib.flow import Flow
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
+import auth_manager
 
 # Configuration des scopes (permissions)
 SCOPES = [
@@ -16,50 +8,363 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive.file"
 ]
 
-def create_oauth_flow():
-    """Crée un flux OAuth à partir de la configuration stockée dans Streamlit secrets."""
-    client_config = {
-        "web": {
-            "client_id": st.secrets["google_oauth"]["client_id"],
-            "client_secret": st.secrets["google_oauth"]["client_secret"],
-            "auth_uri": st.secrets["google_oauth"]["auth_uri"],
-            "token_uri": st.secrets["google_oauth"]["token_uri"],
-            "auth_provider_x509_cert_url": st.secrets["google_oauth"]["auth_provider_x509_cert_url"],
-            "redirect_uris": st.secrets["google_oauth"]["redirect_uris"]
-        }
-    }
+# Initialisation de l'authentification Google et du gestionnaire de sédimentation
+@st.cache_resource
+def init_auth_and_sedimentation():
+    """Initialise l'authentification Google et le gestionnaire de sédimentation."""
+    try:
+        # Import absolu des modules d'authentification
+        import auth_manager
+        import sedimentation_manager
+        
+        # Vérification de l'authentification
+        if auth_manager.is_authenticated():
+            return sedimentation_manager.SedimentationManager()
+        return None
+    except Exception as e:
+        st.warning(f"Impossible d'initialiser l'authentification Google: {str(e)}")
+        return None
 
-    redirect_uris = st.secrets["google_oauth"]["redirect_uris"]
-    redirect_uri = redirect_uris[0] if len(redirect_uris) == 1 else redirect_uris[1]
+# Récupération du gestionnaire de sédimentation si l'utilisateur est authentifié
+sedimentation_manager = init_auth_and_sedimentation()
 
-    flow = Flow.from_client_config(
-        client_config,
-        scopes=SCOPES,
-        redirect_uri=redirect_uri
-    )
+# Initialisation du système
+@st.cache_resource
+def initialize_system():
+    """Initialise le système et retourne les composants principaux."""
+    integration_layer = IntegrationLayer()
+    integration_layer.initialize_system()
+    
+    user_profile = integration_layer.get_module("user_profile")
+    project_context = integration_layer.get_module("project_context")
+    adaptive_engine = integration_layer.get_module("adaptive_engine")
+    history_manager = integration_layer.get_module("history_manager")
+    
+    return integration_layer, user_profile, project_context, adaptive_engine, history_manager
 
-    return flow
+# Récupération des composants du système
+integration_layer, user_profile, project_context, adaptive_engine, history_manager = initialize_system()
 
-def get_user_info(credentials):
-    """Récupère les informations de l'utilisateur connecté."""
-    service = build('oauth2', 'v2', credentials=credentials)
-    return service.userinfo().get().execute()
+# Récupération de la liste des projets
+projects = project_context.get_all_projects()
 
-def is_authenticated():
-    """Vérifie si l'utilisateur est connecté."""
-    return 'google_credentials' in st.session_state
+# Fonction modifiée pour la barre latérale avec authentification Google
+def sidebar_with_auth(projects, current_project_id):
+    # Code existant de la barre latérale
+    st.sidebar.title("Navigation")
+    
+    # Sélection de la page
+    pages = ["Accueil", "Mes projets", "Paramètres"]
+    selected_page = st.sidebar.radio("Aller à", pages)
+    
+    if selected_page == "Accueil" and st.session_state.page != "home":
+        st.session_state.page = "home"
+        st.rerun()
+    elif selected_page == "Mes projets" and st.session_state.page != "projects":
+        st.session_state.page = "projects"
+        st.rerun()
+    elif selected_page == "Paramètres" and st.session_state.page != "settings":
+        st.session_state.page = "settings"
+        st.rerun()
+    
+    # Affichage des projets
+    st.sidebar.title("Mes projets")
+    
+    if st.sidebar.button("➕ Nouveau projet"):
+        st.session_state.page = "new_project"
+        st.rerun()
+    
+    if projects:
+        for project in projects:
+            if st.sidebar.button(
+                project.get("title", "Sans titre"),
+                key=f"sidebar_{project.get('project_id', '')}"
+            ):
+                st.session_state.current_project_id = project.get("project_id", "")
+                st.session_state.page = "project_overview"
+                st.rerun()
+    else:
+        st.sidebar.info("Aucun projet disponible.")
+    
+    # Ajout de la gestion de l'authentification Google
+    st.sidebar.markdown("---")
+    try:
+        # Import absolu du module d'authentification
+        import auth_manager
+        
+        if auth_manager.is_authenticated():
+            user_info = st.session_state.user_info
+            st.sidebar.write(f"👤 Connecté en tant que: {user_info.get('email')}")
+            if st.sidebar.button("Se déconnecter"):
+                auth_manager.logout()
+                st.rerun()
+        else:
+            st.sidebar.warning("Non connecté")
+        if st.sidebar.button("Se connecter avec Google"):
+            flow = auth_manager.create_oauth_flow()
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            st.markdown(f'<meta http-equiv="refresh" content="0; url={auth_url}">', unsafe_allow_html=True)
+    except Exception as e:
+            st.sidebar.warning(f"Authentification non disponible: {str(e)}")
+    
+    # Affichage du projet actuel
+    if current_project_id:
+        current_project = None
+        for project in projects:
+            if project.get("project_id", "") == current_project_id:
+                current_project = project
+                break
+        
+        if current_project:
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("Projet actuel")
+            st.sidebar.info(current_project.get("title", "Sans titre"))
+            
+            # Navigation dans le projet
+            if st.sidebar.button("Vue d'ensemble"):
+                st.session_state.page = "project_overview"
+                st.rerun()
+            
+            if st.sidebar.button("Storyboard"):
+                st.session_state.page = "storyboard"
+                st.rerun()
+            
+            if st.sidebar.button("Rédaction"):
+                st.session_state.page = "redaction"
+                st.rerun()
+            
+            if st.sidebar.button("Révision"):
+                st.session_state.page = "revision"
+                st.rerun()
+            
+            if st.sidebar.button("Finalisation"):
+                st.session_state.page = "finalisation"
+                st.rerun()
+            
+            if st.sidebar.button("Historique"):
+                st.session_state.page = "history"
+                st.rerun()
+            
+            if st.sidebar.button("Paramètres du projet"):
+                st.session_state.page = "project_settings"
+                st.rerun()
 
-def get_credentials():
-    """Récupère les identifiants de l'utilisateur connecté."""
-    if is_authenticated():
-        return Credentials.from_authorized_user_info(
-            st.session_state.google_credentials
+# Affichage de la barre latérale avec authentification
+sidebar_with_auth(projects, st.session_state.current_project_id)
+
+# Gestion des différentes pages
+if st.session_state.page == "home":
+    st.title("Bienvenue dans le Système de Rédaction Académique")
+    
+    st.markdown("""
+    Ce système vous aide à structurer, rédiger et réviser vos textes académiques
+    en suivant un workflow optimisé et en utilisant des techniques d'IA avancées.
+    
+    ### Pour commencer:
+    
+    1. Créez un nouveau projet en cliquant sur "➕ Nouveau projet" dans la barre latérale
+    2. Définissez le storyboard de votre article
+    3. Rédigez chaque section en suivant le plan
+    4. Révisez et améliorez votre texte
+    5. Finalisez et exportez votre document
+    
+    ### Fonctionnalités principales:
+    
+    - **Storyboard Engine**: Structuration narrative et organisation des idées
+    - **Agent de Déploiement Théorique**: Rédaction assistée par IA
+    - **Module de Révision**: Amélioration du style et de la cohérence
+    - **Finalisation**: Export dans différents formats (PDF, DOCX, etc.)
+    - **Sédimentation Contextuelle**: Sauvegarde de l'évolution de votre projet sur Google Drive
+    """)
+    
+    # Affichage des projets récents
+    if projects:
+        st.subheader("Projets récents")
+        
+        # Création de colonnes pour afficher les projets
+        cols = st.columns(3)
+        
+        for i, project in enumerate(projects[:6]):  # Limite à 6 projets récents
+            with cols[i % 3]:
+                st.markdown(f"**{project.get('title', 'Sans titre')}**")
+                st.caption(f"Dernière modification: {project.get('last_modified', '')[:10]}")
+                st.caption(f"Type: {project.get('type', 'Non spécifié')}")
+                
+                if st.button("Ouvrir", key=f"open_{project.get('project_id', '')}"):
+                    st.session_state.current_project_id = project.get("project_id", "")
+                    st.session_state.page = "project_overview"
+                    st.rerun()
+
+elif st.session_state.page == "login":
+    # Page de login Google
+    try:
+        # Import absolu des modules d'authentification
+        import auth_manager
+        
+        st.title("Connexion au Système de Rédaction Académique")
+        
+        if not auth_manager.is_authenticated():
+            st.write("Veuillez vous connecter avec votre compte Google pour accéder au système.")
+            
+            # Création du flux OAuth
+            flow = auth_manager.create_oauth_flow()
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            
+            # Bouton de connexion
+            st.markdown(f"""
+            <a href="{auth_url}" target="_self">
+                <button style="background-color:#4285F4; color:white; border:none; padding:10px 20px; border-radius:5px;">
+                    Se connecter avec Google
+                </button>
+            </a>
+            """, unsafe_allow_html=True)
+        else:
+            st.success(f"Connecté en tant que {st.session_state.user_info.get('email')}")
+            if st.button("Continuer"):
+                st.session_state.page = 'home'
+                st.rerun()
+    except Exception as e:
+        st.error(f"Erreur lors de l'initialisation de l'authentification: {str(e)}")
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = "home"
+            st.rerun()
+
+elif st.session_state.page == "new_project":
+    st.title("Créer un nouveau projet")
+    
+    # Vérification de l'authentification pour la sédimentation
+    try:
+        import auth_manager
+        
+        if not auth_manager.is_authenticated() and sedimentation_manager is None:
+            st.warning("Pour bénéficier de la sédimentation contextuelle et de la sauvegarde sur Google Drive, veuillez vous connecter avec votre compte Google.")
+    except Exception as e:
+        st.warning(f"Authentification non disponible: {str(e)}")
+    
+    # Formulaire de création de projet
+    with st.form("new_project_form"):
+        title = st.text_input("Titre du projet")
+        description = st.text_area("Description")
+        
+        project_type = st.selectbox(
+            "Type de projet",
+            ["Article académique", "Mémoire", "Thèse", "Rapport de recherche", "Autre"]
         )
-    return None
+        
+        style = st.selectbox(
+            "Style d'écriture",
+            ["Standard", "Académique", "CRÉSUS-NAKAMOTO", "AcademicWritingCrypto"]
+        )
+        
+        discipline = st.selectbox(
+            "Discipline",
+            ["Sciences sociales", "Économie", "Droit", "Informatique", "Autre"]
+        )
+        
+        preferred_length = st.slider(
+            "Longueur cible (mots)",
+            min_value=1000,
+            max_value=20000,
+            value=5000,
+            step=1000
+        )
+        
+        submitted = st.form_submit_button("Créer le projet")
+        
+        if submitted:
+            if not title:
+                st.error("Le titre est obligatoire.")
+            else:
+                # Création du projet
+                preferences = {
+                    "style": style,
+                    "discipline": discipline,
+                    "preferred_length": preferred_length
+                }
+                
+                project_id = project_context.create_project(
+                    title=title,
+                    description=description,
+                    project_type=project_type,
+                    preferences=preferences
+                )
+                
+                # Mise à jour des statistiques utilisateur
+                user_profile.update_statistics("projects_created")
+                
+                # Journalisation de l'activité
+                user_profile.log_activity("create_project", {
+                    "project_id": project_id,
+                    "title": title
+                })
+                
+                # Sauvegarde de la première version dans l'historique
+                project_data = project_context.load_project(project_id)
+                history_manager.save_version(
+                    project_id=project_id,
+                    project_data=project_data,
+                    description="Création du projet"
+                )
+                
+                # Sauvegarde avec sédimentation si l'utilisateur est authentifié et le gestionnaire est disponible
+                if sedimentation_manager:
+                    try:
+                        sedimentation_manager.save_project_state(
+                            project_id=project_id,
+                            project_name=title,
+                            data=project_data,
+                            stage="creation"
+                        )
+                    except Exception as e:
+                        st.warning(f"Impossible de sauvegarder sur Google Drive: {str(e)}")
+                
+                # Redirection vers la page du projet
+                st.session_state.current_project_id = project_id
+                st.session_state.page = "project_overview"
+                st.success("Projet créé avec succès!")
+                st.rerun()
 
-def logout():
-    """Déconnecte l'utilisateur."""
-    if 'google_credentials' in st.session_state:
-        del st.session_state.google_credentials
-    if 'user_info' in st.session_state:
-        del st.session_state.user_info
+elif st.session_state.page == "project_overview":
+    # Vérification qu'un projet est sélectionné
+    if not st.session_state.current_project_id:
+        st.error("Aucun projet sélectionné.")
+        st.session_state.page = "home"
+        st.rerun()
+    
+    # Chargement des données du projet
+    project = project_context.load_project(st.session_state.current_project_id)
+    
+    # Affichage des informations du projet
+    st.title(project.get("title", "Sans titre"))
+    st.caption(f"ID: {project.get('project_id', '')}")
+    
+    # Affichage des métadonnées
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Mots", project.get("metadata", {}).get("word_count", 0))
+    
+    with col2:
+        st.metric("Révisions", project.get("metadata", {}).get("revision_count", 0))
+    
+    with col3:
+        st.metric("Complétion", f"{project.get('metadata', {}).get('completion_percentage', 0):.1f}%")
+    
+    # Description du projet
+    st.subheader("Description")
+    st.write(project.get("description", "Aucune description."))
+    
+    # Suggestion du moteur adaptatif
+    suggestion = adaptive_engine.suggest_next_step(
+        project_id=st.session_state.current_project_id,
+        project_context=project_context
+    )
+    
+    st.info(f"💡 **Suggestion**: {suggestion}")
+    
+    # Sections du projet
+    st.subheader("Sections")
+    
+    if not project.get("sections"):
+        st.write("Aucune section n'a encore été créée.")
+        
