@@ -6,7 +6,15 @@ Permet de finaliser un projet et d'exporter le document.
 import streamlit as st
 from typing import Optional, Dict, Any, List
 
-def render_finalisation(project_id: str, project_context, history_manager):
+# Try to import optional dependencies
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
+    st.warning("pandas not available. Some features may be limited.")
+
+def render_finalisation(project_id: str, project_context, history_manager, adaptive_engine=None):
     """
     Interface de finalisation d'un projet.
 
@@ -14,6 +22,7 @@ def render_finalisation(project_id: str, project_context, history_manager):
         project_id: ID du projet
         project_context: Instance de ProjectContext
         history_manager: Instance de HistoryManager
+        adaptive_engine: Instance de AdaptiveEngine (optionnel)
     """
     if not project_id:
         st.error("Aucun projet sélectionné.")
@@ -114,8 +123,21 @@ def render_finalisation(project_id: str, project_context, history_manager):
         with col2:
             st.metric("Nombre de sections", total_sections)
         with col3:
-            avg_words = total_words // max(1, total_sections)
+            avg_words = total_words // max(1, total_sections) if total_sections > 0 else 0
             st.metric("Mots par section", avg_words)
+
+        # Show section breakdown if pandas is available
+        if HAS_PANDAS and sections:
+            st.markdown("### Répartition par section")
+            section_data = []
+            for section in sections:
+                section_data.append({
+                    "Section": section.get("title", "Sans titre"),
+                    "Mots": len(section.get("content", "").split()),
+                    "Caractères": len(section.get("content", ""))
+                })
+            df = pd.DataFrame(section_data)
+            st.dataframe(df)
 
     with tab3:
         st.subheader("Export du document")

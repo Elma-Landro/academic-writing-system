@@ -58,6 +58,18 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 ###########################################
 # Temporarily comment out auth_manager until implemented
 # import auth_manager
+
+# Mock auth_manager for development
+class MockAuthManager:
+    @staticmethod
+    def is_authenticated():
+        return True  # For development, assume always authenticated
+    
+    @staticmethod
+    def logout():
+        pass
+
+auth_manager = MockAuthManager()
 from utils.common import sidebar
 from core.integration_layer import IntegrationLayer
 from core.user_profile import UserProfile
@@ -228,8 +240,8 @@ def main():
         # Get projects (temporary - assume authenticated for now)
         projects = project_context.get_all_projects()
         
-        # Display sidebar
-        render_sidebar(projects, st.session_state.current_project_id)
+        # Display sidebar (commented out for now until properly implemented)
+        # render_sidebar(projects, st.session_state.current_project_id)
         
         # Page routing
         current_page = st.session_state.page
@@ -353,7 +365,8 @@ def main():
             render_finalisation(
                 project_id=st.session_state.current_project_id,
                 project_context=project_context,
-                history_manager=history_manager
+                history_manager=history_manager,
+                adaptive_engine=adaptive_engine
             )
     
     except Exception as e:
