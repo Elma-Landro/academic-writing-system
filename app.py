@@ -91,6 +91,7 @@ from core.user_profile import UserProfile
 from core.project_context import ProjectContext
 from core.adaptive_engine import AdaptiveEngine
 from core.history_manager import HistoryManager
+from sedimentation_manager import SedimentationManager, SedimentationPhase
 
 # Render modules
 from modules.storyboard import render_storyboard
@@ -124,12 +125,19 @@ def initialize_system():
         integration_layer = IntegrationLayer()
         integration_layer.initialize_system()
         
+        project_context = integration_layer.get_module("project_context")
+        history_manager = integration_layer.get_module("history_manager")
+        
+        # Initialiser le gestionnaire de sédimentation
+        sedimentation_manager = SedimentationManager(project_context, history_manager)
+        
         return (
             integration_layer,
             integration_layer.get_module("user_profile"),
-            integration_layer.get_module("project_context"),
+            project_context,
             integration_layer.get_module("adaptive_engine"),
-            integration_layer.get_module("history_manager")
+            history_manager,
+            sedimentation_manager
         )
     except Exception as e:
         st.error(f"Erreur d'initialisation: {str(e)}")
@@ -249,7 +257,8 @@ def main():
             user_profile,
             project_context,
             adaptive_engine,
-            history_manager
+            history_manager,
+            sedimentation_manager
         ) = initialize_system()
         
         # Get projects if authenticated
