@@ -74,11 +74,11 @@ def get_authorization_url():
         st.error(f"Erreur génération URL: {str(e)}")
         return None
 
-def handle_oauth_callback(code, state=None):
+def handle_oauth_callback(code, state):
     """Traite le callback OAuth avec le code d'autorisation."""
     try:
-        # Vérifier le state pour sécurité
-        if state and st.session_state.get('oauth_state') != state:
+        # MANDATORY state verification - no exceptions
+        if not state or st.session_state.get('oauth_state') != state:
             raise ValueError("État OAuth invalide - possible attaque CSRF")
         
         flow = create_oauth_flow()

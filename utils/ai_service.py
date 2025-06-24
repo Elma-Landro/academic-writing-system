@@ -38,10 +38,18 @@ def call_ai_safe(prompt: str,
         return cached_response
     
     # Configuration de l'API OpenAI
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return {
+            "text": "Erreur: Clé API OpenAI non configurée",
+            "error": "MISSING_API_KEY",
+            "source": "error"
+        }
+    
     try:
         # Tentative avec OpenAI
         try:
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+            client = OpenAI(api_key=api_key)
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],

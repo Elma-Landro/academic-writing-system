@@ -68,10 +68,14 @@ class DriveManager:
         query = f"name='{file_name}' and '{folder_id}' in parents and trashed=false"
         results = self.service.files().list(q=query, spaces='drive').execute()
         
-        # Préparation des données
-        file_path = f"/tmp/{file_name}"
-        with open(file_path, 'w') as f:
+        # Use BytesIO instead of filesystem
+        import tempfile
+        import uuid
+        
+        # Create secure temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(data, f)
+            file_path = f.name
         
         media = MediaFileUpload(file_path, mimetype='application/json')
         
