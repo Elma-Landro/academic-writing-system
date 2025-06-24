@@ -56,7 +56,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 ###########################################
 # Imports
 ###########################################
-import auth_manager
+# Temporarily comment out auth_manager until implemented
+# import auth_manager
 from utils.common import sidebar
 from core.integration_layer import IntegrationLayer
 from core.user_profile import UserProfile
@@ -92,41 +93,14 @@ initialize_session_state()
 # Authentication Management
 ###########################################
 def handle_oauth_callback():
-    """Handle OAuth callback."""
-    try:
-        if "code" not in st.query_params:
-            return False
-            
-        code = st.query_params["code"][0]
-        flow = auth_manager.create_oauth_flow()
-        flow.fetch_token(code=code)
-        credentials = flow.credentials
-        
-        st.session_state.google_credentials = {
-            'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes
-        }
-        
-        st.session_state.user_info = auth_manager.get_user_info(credentials)
-        st.success(f"Connecté en tant que {st.session_state.user_info.get('email')}")
-        return True
-        
-    except Exception as e:
-        st.error(f"Erreur d'authentification: {str(e)}")
-        return False
+    """Handle OAuth callback - placeholder implementation."""
+    # TODO: Implement OAuth callback when auth_manager is ready
+    return False
 
 def handle_login():
-    """Initialize login process."""
-    try:
-        flow = auth_manager.create_oauth_flow()
-        auth_url, _ = flow.authorization_url(prompt='consent')
-        st.markdown(f'<meta http-equiv="refresh" content="0; url={auth_url}">', unsafe_allow_html=True)
-    except Exception as e:
-        st.error(f"Erreur de connexion: {str(e)}")
+    """Initialize login process - placeholder implementation."""
+    # TODO: Implement login when auth_manager is ready
+    st.info("Authentication system not yet implemented")
 
 ###########################################
 # System Initialization
@@ -251,10 +225,8 @@ def main():
             history_manager
         ) = initialize_system()
         
-        # Get projects if authenticated
-        projects = []
-        if auth_manager.is_authenticated():
-            projects = project_context.get_all_projects()
+        # Get projects (temporary - assume authenticated for now)
+        projects = project_context.get_all_projects()
         
         # Display sidebar
         render_sidebar(projects, st.session_state.current_project_id)
@@ -265,20 +237,17 @@ def main():
         if current_page == "home":
             st.title("Bienvenue dans le Système de Rédaction Académique")
             
-            if auth_manager.is_authenticated():
-                if projects:
-                    st.subheader("Projets récents")
-                    for project in projects[:6]:
-                        st.write(f"- {project.get('title', 'Sans titre')}")
-                        if st.button("Ouvrir", key=f"open_{project.get('project_id', '')}"):
-                            navigate_to("project_overview", current_project_id=project.get("project_id", ""))
+            # Show projects (temporary - assume authenticated)
+            if projects:
+                st.subheader("Projets récents")
+                for project in projects[:6]:
+                    st.write(f"- {project.get('title', 'Sans titre')}")
+                    if st.button("Ouvrir", key=f"open_{project.get('project_id', '')}"):
+                        navigate_to("project_overview", current_project_id=project.get("project_id", ""))
             else:
-                st.info("Connectez-vous pour accéder à vos projets.")
+                st.info("Aucun projet trouvé. Créez votre premier projet!")
         
         elif current_page == "new_project":
-            if not auth_manager.is_authenticated():
-                st.warning("Veuillez vous connecter pour créer un projet.")
-                return
             
             st.title("Nouveau projet")
             with st.form("new_project_form"):
