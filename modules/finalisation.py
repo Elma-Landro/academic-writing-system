@@ -14,7 +14,7 @@ except ImportError:
     HAS_PANDAS = False
     st.warning("pandas not available. Some features may be limited.")
 
-def render_finalisation(project_id: str, project_context, history_manager, adaptive_engine=None):
+def render_finalisation(project_id: str, project_context, history_manager, adaptive_engine=None, sedimentation_manager=None):
     """
     Interface de finalisation d'un projet.
 
@@ -23,6 +23,7 @@ def render_finalisation(project_id: str, project_context, history_manager, adapt
         project_context: Instance de ProjectContext
         history_manager: Instance de HistoryManager
         adaptive_engine: Instance de AdaptiveEngine (optionnel)
+        sedimentation_manager: Instance de SedimentationManager (optionnel)
     """
     if not project_id:
         st.error("Aucun projet sélectionné.")
@@ -34,8 +35,20 @@ def render_finalisation(project_id: str, project_context, history_manager, adapt
         st.error("Projet non trouvé.")
         return
 
-    st.title("Finalisation du projet")
+    st.title("📄 Finalisation du projet")
     st.subheader(project.get("title", "Sans titre"))
+    
+    # Visualisation de la progression de sédimentation
+    if sedimentation_manager:
+        from utils.sedimentation_ui import render_sedimentation_progress, render_sedimentation_data_flow
+        
+        st.markdown("### 🌱 Progression de la sédimentation")
+        context = render_sedimentation_progress(sedimentation_manager, project_id)
+        
+        # Affichage des métriques de qualité de sédimentation
+        transition_data = context.global_metadata.get('transition_data', {})
+        if transition_data:
+            render_sedimentation_data_flow(context, transition_data)
 
     # Onglets de finalisation
     tab1, tab2, tab3 = st.tabs(["Aperçu final", "Contrôle qualité", "Export"])

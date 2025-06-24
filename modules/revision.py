@@ -1,4 +1,4 @@
-def render_revision(project_id, project_context, history_manager, adaptive_engine):
+def render_revision(project_id, project_context, history_manager, adaptive_engine, sedimentation_manager=None):
     """
     Affiche l'interface de révision pour un projet.
     
@@ -7,11 +7,24 @@ def render_revision(project_id, project_context, history_manager, adaptive_engin
         project_context: Instance de ProjectContext
         history_manager: Instance de HistoryManager
         adaptive_engine: Instance de AdaptiveEngine
+        sedimentation_manager: Instance de SedimentationManager (optionnel)
     """
     import streamlit as st
     from utils.ai_service import generate_academic_text
     
-    st.title("Révision")
+    st.title("🔍 Révision")
+    
+    # Visualisation de la progression de sédimentation
+    if sedimentation_manager:
+        from utils.sedimentation_ui import render_sedimentation_progress, render_sedimentation_data_flow
+        
+        st.markdown("### 🌱 Progression de la sédimentation")
+        context = render_sedimentation_progress(sedimentation_manager, project_id)
+        
+        # Affichage des données d'analyse de contenu
+        transition_data = context.global_metadata.get('transition_data', {})
+        if transition_data:
+            render_sedimentation_data_flow(context, transition_data)
     
     # Chargement des données du projet
     project = project_context.load_project(project_id)
@@ -451,9 +464,29 @@ def render_revision(project_id, project_context, history_manager, adaptive_engin
                 st.rerun()
         
         with col3:
-            if st.button("Passer à la finalisation"):
-                st.session_state.page = "finalisation"
-                st.rerun()
+            if sedimentation_manager:
+                from utils.sedimentation_ui import render_phase_transition_widget
+                
+                # Vérifier si on peut passer à la finalisation
+                from sedimentation_manager import SedimentationPhase
+                readiness = sedimentation_manager.get_transition_readiness(project_id, SedimentationPhase.FINALISATION)
+                
+                if readiness['ready']:
+                    if st.button("🎯 Passer à la finalisation", type="primary"):
+                        result = sedimentation_manager.transition_to_phase(project_id, SedimentationPhase.FINALISATION)
+                        if result['success']:
+                            st.success("Transition vers la finalisation réussie!")
+                            st.session_state.page = "finalisation"
+                            st.rerun()
+                        else:
+                            st.error(f"Erreur de transition: {result.get('error', 'Erreur inconnue')}")
+                else:
+                    st.warning("⚠️ Conditions non remplies pour la finalisation")
+                    st.caption(" | ".join(readiness.get('requirements_missing', [])))
+            else:
+                if st.button("Passer à la finalisation"):
+                    st.session_state.page = "finalisation"
+                    st.rerun()
     
     # Si aucune section n'est sélectionnée, afficher le statut global de révision
     if not current_section_id:

@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import sys
@@ -63,12 +62,12 @@ if "code" in st.query_params:
         import auth_manager
         code = st.query_params.get("code")
         state = st.query_params.get("state")
-        
+
         if isinstance(code, list):
             code = code[0]
         if isinstance(state, list):
             state = state[0]
-            
+
         success = auth_manager.handle_oauth_callback(code, state)
         if success:
             # Nettoyer l'URL et recharger
@@ -77,7 +76,7 @@ if "code" in st.query_params:
             st.rerun()
         else:
             st.error("❌ Échec de l'authentification")
-            
+
     except Exception as e:
         st.error(f"Erreur OAuth: {str(e)}")
 
@@ -124,13 +123,13 @@ def initialize_system():
     try:
         integration_layer = IntegrationLayer()
         integration_layer.initialize_system()
-        
+
         project_context = integration_layer.get_module("project_context")
         history_manager = integration_layer.get_module("history_manager")
-        
+
         # Initialiser le gestionnaire de sédimentation
         sedimentation_manager = SedimentationManager(project_context, history_manager)
-        
+
         return (
             integration_layer,
             integration_layer.get_module("user_profile"),
@@ -189,57 +188,57 @@ def navigate_to(page: str, **kwargs):
 def render_sidebar(projects: List[Dict[str, Any]], current_project_id: Optional[str]):
     """Render sidebar with navigation and authentication."""
     st.sidebar.title("🏠 Navigation")
-    
+
     # Authentication status
     auth_status = auth_manager.get_auth_status()
-    
+
     if auth_status['is_authenticated']:
         user = auth_status['user']
         st.sidebar.success(f"👤 {user.get('name', user.get('email', 'Utilisateur'))}")
-        
+
         # Navigation principale
         pages = {
             "🏠 Accueil": "home",
             "📁 Mes projets": "projects", 
             "⚙️ Paramètres": "settings"
         }
-        
+
         for page_label, page_key in pages.items():
             if st.sidebar.button(page_label, use_container_width=True):
                 navigate_to(page_key)
-        
+
         # Section projets
         st.sidebar.markdown("---")
         st.sidebar.subheader("📝 Mes projets")
-        
+
         if st.sidebar.button("➕ Nouveau projet", use_container_width=True, type="primary"):
             navigate_to("new_project")
-        
+
         # Liste des projets
         if projects:
             for project in projects[:5]:  # Limiter à 5 projets récents
                 title = project.get("title", "Sans titre")
                 if len(title) > 20:
                     title = title[:17] + "..."
-                    
+
                 if st.sidebar.button(
                     title,
                     key=f"sidebar_{project.get('project_id', '')}",
                     use_container_width=True
                 ):
                     navigate_to("project_overview", current_project_id=project.get("project_id", ""))
-                    
+
             if len(projects) > 5:
                 st.sidebar.caption(f"... et {len(projects) - 5} autres projets")
         else:
             st.sidebar.info("Aucun projet disponible")
-        
+
         # Déconnexion
         st.sidebar.markdown("---")
         if st.sidebar.button("🚪 Se déconnecter", use_container_width=True):
             auth_manager.logout()
             st.rerun()
-            
+
     else:
         st.sidebar.warning("⚠️ Non connecté")
         st.sidebar.markdown("Connectez-vous pour accéder à vos projets:")
@@ -260,44 +259,44 @@ def main():
             history_manager,
             sedimentation_manager
         ) = initialize_system()
-        
+
         # Get projects if authenticated
         projects = []
         if auth_manager.is_authenticated():
             projects = project_context.get_all_projects()
-        
+
         # Display sidebar
         render_sidebar(projects, st.session_state.current_project_id)
-        
+
         # Page routing
         current_page = st.session_state.page
-        
+
         if current_page == "home":
             st.title("🎓 Système de Rédaction Académique")
             st.markdown("### Bienvenue dans votre assistant d'écriture académique intelligent")
-            
+
             if not auth_manager.is_authenticated():
                 st.info("👋 Connectez-vous pour commencer à travailler sur vos projets académiques.")
                 auth_manager.login_button()
             else:
                 user = auth_manager.get_current_user()
                 st.success(f"Bonjour {user.get('given_name', user.get('name', 'cher utilisateur'))} !")
-                
+
                 # Dashboard rapide
                 col1, col2, col3 = st.columns(3)
-                
+
                 with col1:
                     st.metric("📁 Projets", len(projects))
                     if st.button("➕ Nouveau projet", use_container_width=True):
                         navigate_to("new_project")
-                
+
                 with col2:
                     recent_projects = len([p for p in projects if p.get('last_modified')])
                     st.metric("📝 Récents", recent_projects)
-                
+
                 with col3:
                     st.metric("⭐ En cours", len([p for p in projects if p.get('status') == 'active']))
-                
+
                 # Projets récents
                 if projects:
                     st.subheader("📚 Projets récents")
@@ -310,30 +309,30 @@ def main():
                             with col2:
                                 if st.button("Ouvrir", key=f"home_open_{project.get('project_id', '')}"):
                                     navigate_to("project_overview", current_project_id=project.get("project_id", ""))
-        
+
         elif current_page == "new_project":
             if not auth_manager.is_authenticated():
                 st.warning("⚠️ Vous devez vous connecter pour créer un projet.")
                 auth_manager.login_button()
                 return
-            
+
             st.title("➕ Nouveau projet")
             st.markdown("Créez un nouveau projet de rédaction académique")
-            
+
             with st.form("new_project_form"):
                 col1, col2 = st.columns(2)
-                
+
                 with col1:
                     title = st.text_input("Titre du projet *", placeholder="Ex: Analyse des crypto-monnaies")
                     project_type = st.selectbox("Type de projet", config.PROJECT_TYPES)
                     discipline = st.selectbox("Discipline", config.DISCIPLINES)
-                
+
                 with col2:
                     description = st.text_area("Description", placeholder="Décrivez brièvement votre projet...")
                     style = st.selectbox("Style d'écriture", config.WRITING_STYLES)
-                
+
                 submitted = st.form_submit_button("🚀 Créer le projet", type="primary")
-                
+
                 if submitted:
                     project_data = {
                         'title': title,
@@ -342,7 +341,7 @@ def main():
                         'style': style,
                         'discipline': discipline
                     }
-                    
+
                     is_valid, errors = validate_project_form(project_data)
                     if is_valid:
                         project_id = create_project(project_data, project_context)
@@ -353,36 +352,36 @@ def main():
                     else:
                         for error in errors:
                             st.error(error)
-        
+
         elif current_page == "project_overview":
             if not auth_manager.is_authenticated():
                 st.warning("⚠️ Vous devez vous connecter pour accéder aux projets.")
                 auth_manager.login_button()
                 return
-            
+
             if not st.session_state.current_project_id:
                 st.error("❌ Aucun projet sélectionné.")
                 if st.button("← Retour à l'accueil"):
                     navigate_to("home")
                 return
-            
+
             project = project_context.load_project(st.session_state.current_project_id)
             if project:
                 st.title(f"📁 {project.get('title', 'Sans titre')}")
                 st.markdown(f"*{project.get('description', 'Aucune description')}*")
-                
+
                 # Étapes du projet
                 st.subheader("🔄 Étapes du projet")
-                
+
                 col1, col2, col3, col4 = st.columns(4)
-                
+
                 steps = [
                     ("📋 Storyboard", "storyboard", "Planifier la structure"),
                     ("✍️ Rédaction", "redaction", "Écrire le contenu"),
                     ("🔍 Révision", "revision", "Réviser et améliorer"),
                     ("📄 Finalisation", "finalisation", "Finaliser et exporter")
                 ]
-                
+
                 for i, ((title, page, desc), col) in enumerate(zip(steps, [col1, col2, col3, col4])):
                     with col:
                         if st.button(title, key=f"step_{i}", use_container_width=True):
@@ -392,14 +391,14 @@ def main():
                 st.error("❌ Projet non trouvé.")
                 if st.button("← Retour à l'accueil"):
                     navigate_to("home")
-        
+
         elif current_page in ["storyboard", "redaction", "revision", "finalisation"]:
             # Vérifier l'authentification pour tous les modules
             if not auth_manager.is_authenticated():
                 st.warning("⚠️ Vous devez vous connecter pour accéder à cette fonctionnalité.")
                 auth_manager.login_button()
                 return
-            
+
             # Navigation breadcrumb
             if st.session_state.current_project_id:
                 project = project_context.load_project(st.session_state.current_project_id)
@@ -410,14 +409,15 @@ def main():
                     with col2:
                         if st.button("← Retour projet"):
                             navigate_to("project_overview")
-            
+
             # Rendre le module approprié
             if current_page == "storyboard":
                 render_storyboard(
                     project_id=st.session_state.current_project_id,
                     project_context=project_context,
                     history_manager=history_manager,
-                    adaptive_engine=adaptive_engine
+                    adaptive_engine=adaptive_engine,
+                    sedimentation_manager=sedimentation_manager
                 )
             elif current_page == "redaction":
                 render_redaction(
@@ -426,7 +426,8 @@ def main():
                     project_context=project_context,
                     history_manager=history_manager,
                     adaptive_engine=adaptive_engine,
-                    integration_layer=integration_layer
+                    integration_layer=integration_layer,
+                    sedimentation_manager=sedimentation_manager
                 )
             elif current_page == "revision":
                 render_revision(
@@ -435,21 +436,23 @@ def main():
                     project_context=project_context,
                     history_manager=history_manager,
                     adaptive_engine=adaptive_engine,
-                    integration_layer=integration_layer
+                    integration_layer=integration_layer,
+                    sedimentation_manager=sedimentation_manager
                 )
             elif current_page == "finalisation":
                 render_finalisation(
                     project_id=st.session_state.current_project_id,
                     project_context=project_context,
                     history_manager=history_manager,
-                    adaptive_engine=adaptive_engine
+                    adaptive_engine=adaptive_engine,
+                    sedimentation_manager=sedimentation_manager
                 )
-        
+
         else:
             st.error(f"❌ Page '{current_page}' non trouvée.")
             if st.button("← Retour à l'accueil"):
                 navigate_to("home")
-    
+
     except Exception as e:
         st.error(f"❌ Une erreur est survenue: {str(e)}")
         st.exception(e)

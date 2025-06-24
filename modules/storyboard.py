@@ -2,7 +2,7 @@ import streamlit as st
 from utils.ai_service import generate_academic_text
 from storyboard_generator import generate_automatic_storyboard, parse_storyboard_sections
 
-def render_storyboard(project_id, project_context, history_manager, adaptive_engine):
+def render_storyboard(project_id, project_context, history_manager, adaptive_engine, sedimentation_manager=None):
     """
     Affiche l'interface de storyboard pour un projet.
     
@@ -11,8 +11,19 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
         project_context: Instance de ProjectContext
         history_manager: Instance de HistoryManager
         adaptive_engine: Instance de AdaptiveEngine
+        sedimentation_manager: Instance de SedimentationManager (optionnel)
     """
-    st.title("Storyboard")
+    st.title("📋 Storyboard")
+    
+    # Visualisation de la progression de sédimentation
+    if sedimentation_manager:
+        from utils.sedimentation_ui import render_sedimentation_progress, render_sections_overview
+        
+        st.markdown("### 🌱 Progression de la sédimentation")
+        context = render_sedimentation_progress(sedimentation_manager, project_id)
+        
+        # Affichage de l'aperçu des sections avec le nouveau système
+        render_sections_overview(context)
     
     # Chargement des données du projet
     project = project_context.load_project(project_id)
@@ -394,23 +405,28 @@ def render_storyboard(project_id, project_context, history_manager, adaptive_eng
             st.session_state.page = "document_timeline"
             st.rerun()
     
-    # Bouton pour terminer le storyboard
+    # Gestion des transitions de phase
     st.markdown("---")
     
-    if st.button("Terminer le storyboard"):
-        # Mise à jour du statut du projet
-        project_context.update_project_status(project_id, "storyboard_ready")
-        
-        # Sauvegarde de la version dans l'historique
-        project_data = project_context.load_project(project_id)
-        history_manager.save_version(
-            project_id=project_id,
-            project_data=project_data,
-            description="Storyboard terminé"
-        )
-        
-        st.success("Storyboard terminé avec succès! Vous pouvez maintenant passer à la phase de rédaction.")
-        
-        # Redirection vers la page du projet
-        st.session_state.page = "project_overview"
-        st.rerun()
+    if sedimentation_manager:
+        from utils.sedimentation_ui import render_phase_transition_widget
+        render_phase_transition_widget(sedimentation_manager, project_id)
+    else:
+        # Fallback pour le système classique
+        if st.button("Terminer le storyboard"):
+            # Mise à jour du statut du projet
+            project_context.update_project_status(project_id, "storyboard_ready")
+            
+            # Sauvegarde de la version dans l'historique
+            project_data = project_context.load_project(project_id)
+            history_manager.save_version(
+                project_id=project_id,
+                project_data=project_data,
+                description="Storyboard terminé"
+            )
+            
+            st.success("Storyboard terminé avec succès! Vous pouvez maintenant passer à la phase de rédaction.")
+            
+            # Redirection vers la page du projet
+            st.session_state.page = "project_overview"
+            st.rerun()

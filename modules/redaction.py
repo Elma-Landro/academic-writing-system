@@ -1,4 +1,4 @@
-def render_redaction(project_id, project_context, history_manager, adaptive_engine):
+def render_redaction(project_id, project_context, history_manager, adaptive_engine, sedimentation_manager=None):
     """
     Affiche l'interface de rédaction pour un projet.
     
@@ -7,11 +7,24 @@ def render_redaction(project_id, project_context, history_manager, adaptive_engi
         project_context: Instance de ProjectContext
         history_manager: Instance de HistoryManager
         adaptive_engine: Instance de AdaptiveEngine
+        sedimentation_manager: Instance de SedimentationManager (optionnel)
     """
     import streamlit as st
     from utils.ai_service import generate_academic_text
     
-    st.title("Rédaction")
+    st.title("✍️ Rédaction")
+    
+    # Visualisation de la progression de sédimentation
+    if sedimentation_manager:
+        from utils.sedimentation_ui import render_sedimentation_progress, render_sedimentation_data_flow
+        
+        st.markdown("### 🌱 Progression de la sédimentation")
+        context = render_sedimentation_progress(sedimentation_manager, project_id)
+        
+        # Récupération des données de transition depuis le storyboard
+        transition_data = context.global_metadata.get('transition_data', {})
+        if transition_data:
+            render_sedimentation_data_flow(context, transition_data)
     
     # Chargement des données du projet
     project = project_context.load_project(project_id)
@@ -64,28 +77,77 @@ def render_redaction(project_id, project_context, history_manager, adaptive_engi
         # Affichage du titre de la section
         st.subheader(f"Édition: {section.get('title', 'Sans titre')}")
         
-        # Récupération des thèses et citations du storyboard si disponibles
-        storyboard_data = project.get("storyboard_data", {})
+        # Récupération des données de sédimentation ou fallback vers les données classiques
         section_theses = []
+        section_citations = []
+        writing_prompts = []
         
-        for thesis_section in storyboard_data.get("sections", []):
-            if thesis_section.get("title") == section.get("title"):
-                section_theses = thesis_section.get("theses", [])
-                break
+        if sedimentation_manager:
+            # Utiliser les données de sédimentation
+            sedi_context = sedimentation_manager.get_sedimentation_context(project_id)
+            for sedi_section in sedi_context.sections:
+                if sedi_section.section_id == current_section_id or sedi_section.title == section.get("title"):
+                    section_theses = sedi_section.theses
+                    section_citations = sedi_section.citations
+                    writing_prompts = sedi_context.global_metadata.get('writing_prompts', {}).get(sedi_section.section_id, [])
+                    break
+        else:
+            # Fallback vers les données classiques
+            storyboard_data = project.get("storyboard_data", {})
+            for thesis_section in storyboard_data.get("sections", []):
+                if thesis_section.get("title") == section.get("title"):
+                    section_theses = [thesis.get('text', '') for thesis in thesis_section.get("theses", [])]
+                    break
         
-        # Affichage des thèses et citations associées à cette section
-        if section_theses:
-            with st.expander("Thèses et citations du storyboard", expanded=True):
-                for i, thesis in enumerate(section_theses):
-                    st.markdown(f"**Thèse {i+1}:** {thesis.get('text', '')}")
+        # Affichage enrichi des données de sédimentation
+        if section_theses or section_citations or writing_prompts:
+            with st.expander("💡 Données de sédimentation du storyboard", expanded=True):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if section_theses:
+                        st.markdown("**🎯 Thèses identifiées:**")
+                        for i, thesis in enumerate(section_theses):
+                            st.markdown(f"• {thesis}")
                     
-                    citations = thesis.get("citations", [])
-                    if citations:
-                        st.markdown("**Citations:**")
-                        for j, citation in enumerate(citations):
-                            st.markdown(f"- {citation}")
+                    if writing_prompts:
+                        st.markdown("**✨ Prompts d'écriture suggérés:**")
+                        for prompt in writing_prompts:
+                            st.markdown(f"💡 {prompt}")
+                
+                with col2:
+                    if section_citations:
+                        st.markdown("**📚 Citations suggérées:**")
+                        for citation in section_citations:
+                            st.markdown(f"• {citation}")
+                
+                # Bouton pour pré-remplir le contenu
+                if st.button("🚀 Pré-remplir avec les données de sédimentation"):
+                    pre_filled_content = ""
                     
-                    st.markdown("---")
+                    if section_theses:
+                        pre_filled_content += "## Thèses principales\n\n"
+                        for thesis in section_theses:
+                            pre_filled_content += f"- {thesis}\n"
+                        pre_filled_content += "\n"
+                    
+                    if writing_prompts:
+                        pre_filled_content += "## À développer\n\n"
+                        for prompt in writing_prompts:
+                            pre_filled_content += f"- {prompt}\n"
+                        pre_filled_content += "\n"
+                    
+                    # Mise à jour de la section avec le contenu pré-rempli
+                    current_content = section.get("content", "")
+                    if not current_content.strip():
+                        project_context.update_section(
+                            project_id=project_id,
+                            section_id=current_section_id,
+                            title=section.get("title", ""),
+                            content=pre_filled_content
+                        )
+                        st.success("Contenu pré-rempli avec succès!")
+                        st.rerun()
         
         # Onglets pour les différentes fonctionnalités
         tab1, tab2, tab3 = st.tabs(["Édition", "Assistance IA", "Prévisualisation"])
