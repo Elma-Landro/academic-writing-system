@@ -1,4 +1,4 @@
-def render_redaction(project_id, project_context, history_manager, adaptive_engine, sedimentation_manager=None):
+def render_redaction(project_id, project_context, history_manager, adaptive_engine, sedimentation_manager=None, fileverse_manager=None):
     """
     Affiche l'interface de rédaction pour un projet.
     
@@ -150,7 +150,7 @@ def render_redaction(project_id, project_context, history_manager, adaptive_engi
                         st.rerun()
         
         # Onglets pour les différentes fonctionnalités
-        tab1, tab2, tab3 = st.tabs(["Édition", "Assistance IA", "Prévisualisation"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Édition", "Fileverse Editor", "Assistance IA", "Prévisualisation"])
         
         with tab1:
             # Formulaire d'édition
@@ -229,6 +229,17 @@ def render_redaction(project_id, project_context, history_manager, adaptive_engi
                 st.rerun()
         
         with tab2:
+            # Intégration de l'éditeur Fileverse
+            from modules.fileverse_editor import render_fileverse_editor
+            render_fileverse_editor(
+                project_id=project_id,
+                section_id=current_section_id,
+                project_context=project_context,
+                sedimentation_manager=sedimentation_manager,
+                fileverse_manager=fileverse_manager
+            )
+        
+        with tab3:
             st.subheader("Assistance à la rédaction")
             
             # Options d'assistance
@@ -339,7 +350,7 @@ def render_redaction(project_id, project_context, history_manager, adaptive_engi
                             st.success("Contenu inséré avec succès!")
                             st.rerun()
         
-        with tab3:
+        with tab4:
             st.subheader("Prévisualisation de la section")
             
             # Affichage du contenu formaté

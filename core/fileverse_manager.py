@@ -20,6 +20,31 @@ class FileversePadData:
     collaborators: List[str]
     last_modified: str
     section_type: str = "intermediate"  # intermediate, draft, final
+    sedimentation_phase: str = "storyboard"  # storyboard, redaction, revision, final
+
+
+
+"""
+Gestionnaire d'intégration Fileverse pour la sédimentation académique.
+Permet l'utilisation du traitement de texte intégré pour alimenter les étapes successives.
+"""
+
+import streamlit as st
+import requests
+import json
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from dataclasses import dataclass
+
+@dataclass
+class FileversePadData:
+    """Structure pour les données d'un pad Fileverse."""
+    pad_id: str
+    title: str
+    content: str
+    collaborators: List[str]
+    last_modified: str
+    section_type: str = "intermediate"  # intermediate, draft, final
     sedimentation_phase: str = "storyboard"  # storyboard, redaction, revision, finalisation
 
 class FileVerseManager:

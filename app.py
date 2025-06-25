@@ -448,7 +448,8 @@ def main():
                     history_manager=history_manager,
                     adaptive_engine=adaptive_engine,
                     integration_layer=integration_layer,
-                    sedimentation_manager=sedimentation_manager
+                    sedimentation_manager=sedimentation_manager,
+                    fileverse_manager=fileverse_manager
                 )
             elif current_page == "revision":
                 render_revision(
