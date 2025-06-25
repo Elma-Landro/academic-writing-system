@@ -79,7 +79,7 @@ def initialize_app():
         logger.error(f"App initialization error: {e}")
         st.stop()
 
-def render_sidebar(user):
+def render_sidebar(user: Optional[Any]) -> None:
     """Render the navigation sidebar."""
     with st.sidebar:
         st.title("📝 Academic Writing")
@@ -90,7 +90,8 @@ def render_sidebar(user):
             # Navigation menu
             st.markdown("### Navigation")
 
-            pages = {
+            # Navigation constants
+            NAVIGATION_PAGES = {
                 'home': '🏠 Home',
                 'projects': '📁 My Projects',
                 'storyboard': '📋 Storyboard',
@@ -99,6 +100,8 @@ def render_sidebar(user):
                 'finalisation': '📄 Finalization',
                 'profile': '⚙️ Profile'
             }
+
+            pages = NAVIGATION_PAGES
 
             for page_key, page_name in pages.items():
                 if st.button(page_name, key=f"nav_{page_key}"):
