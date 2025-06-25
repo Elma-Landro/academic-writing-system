@@ -64,31 +64,16 @@ class AuthenticationManager:
             return False
 
         try:
-            # Google OAuth scopes
-            scope = "openid email profile"
-
-            # Get authorization URL
-            authorization_url = self.google_oauth.get_authorization_url(
-                scope=scope,
-                redirect_uri="http://localhost:5000/oauth/callback"
+            # Use the correct method name for streamlit-oauth
+            result = self.google_oauth.authorize_button(
+                "Login with Google",
+                redirect_uri="http://localhost:5000/oauth/callback",
+                scope="openid email profile"
             )
 
-            # Display login button
-            if st.button("🔐 Login with Google", type="primary"):
-                st.write(f"Please visit this URL to authenticate: {authorization_url}")
-                st.code(authorization_url)
-                return False
-
-            # Handle callback (simplified for demo)
-            if 'oauth_code' in st.query_params:
-                code = st.query_params['oauth_code']
-                token_data = self.google_oauth.get_token(
-                    code=code,
-                    redirect_uri="http://localhost:5000/oauth/callback"
-                )
-
+            if result and 'token' in result:
                 # Get user info from Google
-                user_info = self._get_google_user_info(token_data['access_token'])
+                user_info = self._get_google_user_info(result['token']['access_token'])
 
                 if user_info:
                     # Create or update user
@@ -255,6 +240,37 @@ def require_auth(func):
         return func(*args, **kwargs)
     return wrapper
 
+def render_google_login(self):
+        """Render Google login component."""
+        if not self.google_oauth:
+            st.error("Google authentication not configured.")
+            return False
+
+        try:
+            result = self.google_oauth.authorize_button(
+                "🔐 Login with Google",
+                redirect_uri="http://localhost:5000/oauth/callback",
+                scope="openid email profile"
+            )
+
+            if result and 'token' in result:
+                user_info = self._get_google_user_info(result['token']['access_token'])
+                if user_info:
+                    user = self._handle_google_user(user_info)
+                    st.session_state.user_id = user.id
+                    st.session_state.user_email = user.email
+                    st.session_state.user_name = user.display_name
+                    st.success(f"Welcome, {user.display_name}!")
+                    st.rerun()
+                    return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Google auth render error: {e}")
+            st.error(f"Login failed: 'OAuth2Component' object has no attribute 'get_authorization_url'")
+            return False
+
 def render_login_page():
     """Render the login page with multiple authentication options."""
     st.title("🔐 Academic Writing System - Login")
@@ -266,7 +282,7 @@ def render_login_page():
         st.write("Login with your Google account for full features:")
 
         if auth_manager.google_oauth:
-            auth_manager.login_with_google()
+            auth_manager.render_google_login()
         else:
             st.warning("Google authentication not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
 
