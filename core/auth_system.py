@@ -227,20 +227,7 @@ class AuthenticationManager:
             logger.warning("Invalid JWT token")
             return None
 
-# Global authentication manager
-auth_manager = AuthenticationManager()
-
-def require_auth(func):
-    """Decorator to require authentication for Streamlit pages."""
-    def wrapper(*args, **kwargs):
-        if not auth_manager.is_authenticated():
-            st.warning("Please log in to access this feature.")
-            render_login_page()
-            return None
-        return func(*args, **kwargs)
-    return wrapper
-
-def render_google_login(self):
+    def render_google_login(self):
         """Render Google login component."""
         if not self.google_oauth:
             st.error("Google authentication not configured.")
@@ -270,6 +257,21 @@ def render_google_login(self):
             logger.error(f"Google auth render error: {e}")
             st.error(f"Login failed: {e}")
             return False
+
+# Global authentication manager
+auth_manager = AuthenticationManager()
+
+def require_auth(func):
+    """Decorator to require authentication for Streamlit pages."""
+    def wrapper(*args, **kwargs):
+        if not auth_manager.is_authenticated():
+            st.warning("Please log in to access this feature.")
+            render_login_page()
+            return None
+        return func(*args, **kwargs)
+    return wrapper
+
+
 
 def render_login_page():
     """Render the login page with multiple authentication options."""
