@@ -308,12 +308,18 @@ pip install -r requirements.txt
 
 ### Configuration
 
-1. Créez un fichier `.env` à la racine du projet avec les variables suivantes :
+1. Copiez le fichier template de secrets :
+```bash
+cp secrets_template.toml secrets.toml
+```
 
-```
-OPENAI_API_KEY=votre_clé_api_openai
-VENICE_API_KEY=votre_clé_api_venice (optionnel)
-```
+2. Éditez `secrets.toml` avec vos vraies clés API :
+   - Google OAuth (obligatoire)
+   - OpenAI API (obligatoire)
+   - Venice API (optionnel, fallback)
+   - Fileverse API (optionnel)
+
+3. **IMPORTANT** : Ne committez jamais le fichier `secrets.toml` avec vos vraies clés !
 
 2. Assurez-vous que les dossiers de données sont créés (ils seront automatiquement créés au premier lancement) :
 

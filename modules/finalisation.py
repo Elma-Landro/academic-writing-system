@@ -18,7 +18,7 @@ except ImportError:
     HAS_PANDAS = False
     st.warning("pandas not available. Some features may be limited.")
 
-from utils.ai_service import call_ai_safe, generate_academic_text, analyze_text_structure
+from utils.ai_service import call_ai_safe, generate_academic_textcture
 
 def render_finalisation(project_id: str, project_context, history_manager, adaptive_engine=None, sedimentation_manager=None):
     """

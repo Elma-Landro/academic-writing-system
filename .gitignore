@@ -1,3 +1,33 @@
+
+# === PROJECT SPECIFIC ===
+# Debug files
+quick_test_openai.py
+test_openai_key.py
+Debugg OAth tool.py
+
+# Temporary assets
+attached_assets/
+
+# Secrets and config
+.env
+secrets.toml
+*_secret.json
+
+# Data directories with user content
+data/projects/*
+data/profiles/*
+data/history/*
+data/cache/*
+data/exports/*
+
+# Keep structure but ignore content
+!data/projects/.gitkeep
+!data/profiles/.gitkeep
+!data/history/.gitkeep
+!data/cache/.gitkeep
+!data/exports/.gitkeep
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
