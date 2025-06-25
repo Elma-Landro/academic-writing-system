@@ -1,53 +1,37 @@
-
 import os
 
-print("=== Test rapide OpenAI ===")
+print("=== Test OpenAI PROPRE ===")
 
 # 1. Vérifier la clé API
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
-    print("❌ ERREUR: OPENAI_API_KEY non trouvée dans les secrets")
+    print("❌ ERREUR: Clé API non trouvée")
     exit(1)
 
-print(f"✅ Clé API trouvée: {api_key[:10]}...{api_key[-4:]}")
+print(f"✅ Clé API: {api_key[:10]}...{api_key[-4:]}")
 
-# 2. Tester l'import OpenAI
+# 2. Test avec la méthode la plus simple possible
 try:
     from openai import OpenAI
-    print("✅ Module OpenAI importé avec succès")
-except ImportError as e:
-    print(f"❌ ERREUR d'import OpenAI: {e}")
-    exit(1)
+    print("✅ Import réussi")
 
-# 3. Tester la connexion avec initialisation minimale
-try:
-    # Initialisation simple sans paramètres supplémentaires
-    client = OpenAI()
-    client.api_key = api_key
-    
+    # Méthode la plus basique : utiliser la variable d'environnement directement
+    client = OpenAI(api_key=api_key)
+
+    print("✅ Client créé")
+
+    # Test minimal
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": "Dis juste 'Test réussi'"}],
-        max_tokens=10,
-        temperature=0.1
+        messages=[{"role": "user", "content": "Dis 'OK'"}],
+        max_tokens=5
     )
-    
-    result = response.choices[0].message.content
-    print(f"🎉 SUCCÈS! Réponse OpenAI: {result}")
-    print(f"Tokens utilisés: {response.usage.total_tokens}")
-    
-except Exception as e:
-    print(f"❌ ERREUR OpenAI: {e}")
-    
-    # Diagnostics spécifiques
-    error_str = str(e).lower()
-    if "authentication" in error_str or "invalid" in error_str:
-        print("🔍 Problème: Clé API invalide ou expirée")
-    elif "quota" in error_str or "rate limit" in error_str:
-        print("🔍 Problème: Quota dépassé ou limite de taux")
-    elif "billing" in error_str:
-        print("🔍 Problème: Compte sans crédits ou carte non configurée")
-    else:
-        print("🔍 Erreur inconnue - essayons une approche différente")
 
-print("\n=== Fin du test ===")
+    print(f"🎉 SUCCÈS! Réponse: {response.choices[0].message.content}")
+    print(f"✅ Tokens: {response.usage.total_tokens}")
+
+except Exception as e:
+    print(f"❌ ERREUR: {e}")
+    print(f"Type d'erreur: {type(e).__name__}")
+
+print("\n=== Fin ===")
