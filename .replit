@@ -5,7 +5,7 @@ channel = "stable-24_05"
 packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "qhull", "tcl", "tk", "zlib"]
 
 [workflows]
-runButton = "Flask Academic Writing System"
+runButton = "Academic Writing System"
 
 [[workflows.workflow]]
 name = "Streamlit App"
@@ -42,15 +42,6 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python server.py"
-
-[[workflows.workflow]]
-name = "Flask Academic Writing System"
-author = 44225636
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python web_app.py"
 
 [[ports]]
 localPort = 5000
