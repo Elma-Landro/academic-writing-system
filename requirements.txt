@@ -10,6 +10,10 @@ openai==1.51.2
 
 # Configuration et environnement
 python-dotenv==1.0.1
+PyJWT==2.8.0
+pytz==2024.2
+tzdata==2024.2
+tzlocal==5.2
 
 # Requêtes HTTP
 requests==2.32.3
@@ -30,7 +34,7 @@ typing-extensions==4.12.2
 
 # Gestion des dates et temps
 python-dateutil==2.9.0.post0
-pytz==2024.2
+
 tzdata==2024.2
 tzlocal==5.2
 
