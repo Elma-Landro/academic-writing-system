@@ -270,7 +270,7 @@ Pipeline de traitement automatique en 5 étapes :
 ## 📄 Licence et remerciements
 
 ### Licence
-Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+Ce projet est sous licence GPL v3. Voir le fichier LICENSE pour plus de détails.
 
 ### Remerciements
 - **Fileverse** pour la plateforme de traitement de texte décentralisée
