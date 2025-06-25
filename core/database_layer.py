@@ -61,7 +61,7 @@ class Section(Base):
     order_index = Column(Integer, default=0)
     fileverse_pad_id = Column(String)
     status = Column(String, default='draft')
-    metadata = Column(JSON, default=dict)
+    section_metadata = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
