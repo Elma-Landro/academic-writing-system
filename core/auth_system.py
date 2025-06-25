@@ -249,7 +249,7 @@ def render_google_login(self):
         try:
             result = self.google_oauth.authorize_button(
                 "🔐 Login with Google",
-                redirect_uri="http://localhost:5000/oauth/callback",
+                redirect_uri="http://0.0.0.0:5000/oauth/callback",
                 scope="openid email profile"
             )
 
@@ -268,7 +268,7 @@ def render_google_login(self):
 
         except Exception as e:
             logger.error(f"Google auth render error: {e}")
-            st.error(f"Login failed: 'OAuth2Component' object has no attribute 'get_authorization_url'")
+            st.error(f"Login failed: {e}")
             return False
 
 def render_login_page():
