@@ -466,8 +466,49 @@ def main():
 
         # Route to appropriate page
         if not user:
-            render_login_page()
-            return
+            # === INTERFACE D'AUTHENTIFICATION ===
+            if not st.session_state.get('is_authenticated', False):
+                st.title("🔐 Academic Writing System - Login")
+
+                # Section Google Account
+                st.subheader("Google Account")
+                st.write("Login with your Google account for full features:")
+
+                # Vérification si on a des paramètres d'URL (retour OAuth)
+                query_params = st.query_params
+                if 'code' in query_params:
+                    st.info("Traitement de l'authentification en cours...")
+
+                # Rendu du système d'authentification
+                try:
+                    auth_manager.render_google_login()
+                except Exception as e:
+                    st.error(f"Erreur d'authentification: {e}")
+                    logger.error(f"Authentication error: {e}")
+
+                # Section Web3 Wallet
+                st.subheader("Web3 Wallet")
+                st.write("Connect your crypto wallet:")
+
+                wallet_address = st.text_input("Wallet Address", key="wallet_input")
+                signature = st.text_input("Signature", type="password", key="signature_input")
+
+                if st.button("Connect Wallet", key="connect_wallet"):
+                    if wallet_address and signature:
+                        # Validation basique (à améliorer)
+                        st.session_state.wallet_address = wallet_address
+                        st.session_state.wallet_signature = signature
+                        st.session_state.web3_authenticated = True
+                        st.session_state.is_authenticated = True
+                        st.success("Web3 wallet connected!")
+                        st.rerun()
+                    else:
+                        st.error("Please provide both wallet address and signature")
+
+                # Si aucune authentification
+                if not st.session_state.get('web3_authenticated', False):
+                    st.info("Please authenticate using Google Account or Web3 Wallet to access the system.")
+                return
 
         page = st.session_state.get('page', 'home')
 
@@ -541,4 +582,3 @@ if __name__ == "__main__":
     # Authentification
     if not auth_manager.is_authenticated():
         render_login_page()
-        #return
