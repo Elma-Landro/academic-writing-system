@@ -19,9 +19,11 @@ except ImportError as e:
     print(f"❌ ERREUR d'import OpenAI: {e}")
     exit(1)
 
-# 3. Tester la connexion
+# 3. Tester la connexion avec initialisation minimale
 try:
-    client = OpenAI(api_key=api_key)
+    # Initialisation simple sans paramètres supplémentaires
+    client = OpenAI()
+    client.api_key = api_key
     
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -46,6 +48,6 @@ except Exception as e:
     elif "billing" in error_str:
         print("🔍 Problème: Compte sans crédits ou carte non configurée")
     else:
-        print("🔍 Erreur inconnue")
+        print("🔍 Erreur inconnue - essayons une approche différente")
 
 print("\n=== Fin du test ===")
