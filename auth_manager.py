@@ -32,20 +32,32 @@ class GoogleAuthManager:
         os.makedirs("data", exist_ok=True)
         
     def _get_client_config(self) -> Dict[str, Any]:
-        """Récupère la configuration client depuis les secrets Streamlit."""
+        """Récupère la configuration client depuis les secrets."""
         try:
+            # Essayer d'abord les secrets Streamlit (pour compatibilité)
+            if hasattr(st, 'secrets') and 'google' in st.secrets:
+                client_id = st.secrets["google"]["client_id"]
+                client_secret = st.secrets["google"]["client_secret"]
+            else:
+                # Utiliser les variables d'environnement (secrets Replit)
+                client_id = os.getenv("GOOGLE_CLIENT_ID")
+                client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+                
+                if not client_id or not client_secret:
+                    raise ValueError("Google OAuth credentials not found")
+            
             return {
                 "web": {
-                    "client_id": st.secrets["google"]["client_id"],
-                    "client_secret": st.secrets["google"]["client_secret"],
+                    "client_id": client_id,
+                    "client_secret": client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "redirect_uris": [REDIRECT_URI]
                 }
             }
-        except KeyError as e:
-            self.logger.error(f"Missing Google configuration in secrets: {e}")
-            raise ValueError(f"Configuration Google manquante dans les secrets: {e}")
+        except Exception as e:
+            self.logger.error(f"Missing Google configuration: {e}")
+            raise ValueError(f"Configuration Google manquante: {e}")
     
     def create_oauth_flow(self) -> Optional[Flow]:
         """Crée le flow OAuth avec gestion d'erreurs."""
