@@ -1,4 +1,3 @@
-
 """
 Simple HTTP server to serve the landing page and redirect to Streamlit app.
 """
@@ -20,7 +19,7 @@ class CustomHandler(SimpleHTTPRequestHandler):
             self.send_header('Location', 'http://localhost:5000')
             self.end_headers()
             return
-        
+
         return SimpleHTTPRequestHandler.do_GET(self)
 
 def start_streamlit():
@@ -31,17 +30,17 @@ def start_streamlit():
 def main():
     """Start both servers."""
     print("🚀 Starting Academic Writing System...")
-    
+
     # Start Streamlit in background thread
     streamlit_thread = threading.Thread(target=start_streamlit, daemon=True)
     streamlit_thread.start()
-    
+
     # Start main HTTP server
     server = HTTPServer(('0.0.0.0', 8080), CustomHandler)
     print("📝 Landing page: http://localhost:8080")
     print("🎯 Streamlit app: http://localhost:5000")
     print("✅ System ready!")
-    
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:

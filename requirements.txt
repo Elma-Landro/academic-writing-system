@@ -46,3 +46,4 @@ eth-account
 web3
 eth-account
 web3
+sqlalchemy
