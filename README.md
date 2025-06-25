@@ -1,381 +1,273 @@
-# Système de Rédaction Académique
+# Système de Rédaction Académique Intégré
 
-Un système complet pour structurer, rédiger et réviser des textes académiques avec assistance IA.
+Un système complet pour structurer, rédiger et réviser des textes académiques avec assistance IA et intégration Fileverse pour un traitement de texte décentralisé.
 
-## Vision et concept
+## 🎯 Vision et concept
 
-Le Système de Rédaction Académique Intégré est une plateforme complète conçue pour accompagner les chercheurs et académiques tout au long du processus de création de textes scientifiques. Contrairement aux outils d'écriture traditionnels ou aux assistants IA génériques, ce système repose sur une **logique de sédimentation progressive** où chaque étape enrichit la suivante, créant ainsi un flux de travail cohérent et une mémoire contextuelle riche.
+Le Système de Rédaction Académique Intégré est une plateforme révolutionnaire conçue pour accompagner les chercheurs et académiques tout au long du processus de création de textes scientifiques. Contrairement aux outils d'écriture traditionnels ou aux assistants IA génériques, ce système repose sur une **logique de sédimentation progressive** où chaque étape enrichit la suivante, créant ainsi un flux de travail cohérent et une mémoire contextuelle riche.
 
-## Fonctionnalités principales
+### 🌟 Innovation clé : Intégration Fileverse
 
-- **Storyboard Engine** : Structuration narrative et organisation des idées
-- **Agent de Déploiement Théorique** : Rédaction assistée par IA
-- **Module de Révision** : Amélioration du style et de la cohérence
-- **Finalisation** : Export dans différents formats (TXT, MD, JSON)
-- **Gestion de l'historique** : Suivi des versions et restauration
-- **Profil utilisateur** : Personnalisation de l'expérience
-- **Moteur adaptatif** : Suggestions contextuelles et aide à la rédaction
+L'application intègre **Fileverse**, une plateforme de traitement de texte décentralisée qui révolutionne la façon dont nous créons et gérons les documents académiques :
 
-## Architecture du système
+- **Traitement de texte intégré** : Interface d'édition directement dans l'application
+- **Stockage décentralisé** : Vos documents sont sécurisés sur la blockchain
+- **Versioning automatique** : Chaque modification est tracée et horodatée
+- **Collaboration sécurisée** : Partage et co-édition en temps réel
+- **Sédimentation enrichie** : Les données Fileverse nourrissent le processus de sédimentation
+
+## 🚀 Fonctionnalités principales
 
-Le système est organisé en modules distincts :
-
-- **Core** : Modules fondamentaux (profil utilisateur, contexte de projet, moteur adaptatif, etc.)
-- **Modules** : Fonctionnalités spécifiques (storyboard, rédaction, révision, finalisation)
-- **Utils** : Services utilitaires (IA, cache, fonctions communes)
-
-### Approche sédimentaire et relationnelle
-
-Le cœur conceptuel du système repose sur trois dimensions relationnelles fondamentales :
-
-1. **Relation utilisateur-système** : Le système apprend et s'adapte aux préférences stylistiques, disciplinaires et méthodologiques de l'utilisateur
-2. **Relation système-contenu** : Chaque module transmet et enrichit les données au module suivant, assurant une continuité narrative et argumentative
-3. **Relation système-modèle IA** : Une architecture robuste avec stratégies de fallback et cache optimise l'utilisation des services d'IA
-
-Cette triple relation crée un environnement d'écriture qui devient progressivement plus personnalisé et efficace au fil de son utilisation.
-
-## Architecture du système
-
-Le système s'articule autour de quatre piliers fondamentaux :
-
-### 1. Modules core (noyau relationnel)
-
-Ces modules constituent l'épine dorsale du système et gèrent les relations fondamentales :
-
-- **UserProfile** : Gestion des préférences utilisateur, styles d'écriture favoris et historique d'utilisation
-- **ProjectContext** : Maintien du contexte global de chaque projet, métadonnées et structure
-- **IntegrationLayer** : Orchestration des interactions entre tous les composants du système
-- **AdaptiveEngine** : Adaptation dynamique des suggestions et du comportement du système
-- **HistoryManager** : Suivi des versions et possibilité de revenir à des états antérieurs
-
-### 2. Modules fonctionnels (workflow sédimentaire)
-
-Ces modules correspondent aux étapes séquentielles du processus de rédaction académique :
-
-- **Storyboard** : Structuration narrative et organisation des idées
-- **Rédaction** : Création du contenu textuel avec assistance IA
-- **Révision** : Amélioration du style, de la cohérence et de la rigueur
-- **Finalisation** : Export et mise en forme finale du document
-
-### 3. Services d'IA (intelligence adaptative)
-
-L'intelligence du système repose sur des services d'IA robustes et redondants :
-
-- **Service OpenAI** : Utilisation des modèles GPT pour la génération et l'analyse de texte
-- **Service Venice** (fallback) : Alternative en cas d'indisponibilité du service principal
-- **Système de cache** : Optimisation des performances et réduction des coûts d'API
-
-### 4. Interface utilisateur (expérience fluide)
-
-Une interface Streamlit intuitive et réactive qui guide l'utilisateur à travers le processus :
-
-- **Navigation par onglets** suivant la progression naturelle du workflow
-- **Visualisation constante** du plan et de la structure du document
-- **Feedback immédiat** sur les actions et suggestions contextuelles
-
-## Workflow sédimentaire
-
-Le système implémente un workflow en quatre phases où chaque étape s'appuie sur les précédentes et prépare les suivantes :
-
-### Phase 1 : Storyboard (structuration)
-
-Cette phase initiale permet de définir l'ossature du document :
-
-- Création de sections avec titres et descriptions
-- Génération assistée de structures narratives
-- Suggestions adaptées au type de document (article, thèse, etc.)
-- Réorganisation intuitive des sections
-
-**Sédimentation** : La structure créée ici devient le fondement pour toutes les phases suivantes.
-
-### Phase 2 : Rédaction (création)
-
-La phase de rédaction s'appuie directement sur la structure définie dans le storyboard :
-
-- Édition section par section avec contexte global toujours visible
-- Génération assistée de contenu basée sur les descriptions du storyboard
-- Analyse en temps réel de la complexité et du style
-- Suggestions stylistiques adaptées aux préférences utilisateur
-
-**Sédimentation** : Le contenu créé ici enrichit la structure et prépare la phase de révision.
-
-### Phase 3 : Révision (amélioration)
-
-La révision travaille directement sur le contenu rédigé :
-
-- Analyse stylistique et grammaticale contextuelle
-- Suggestions de citations pertinentes
-- Révision assistée avec plusieurs modes (style, grammaire, clarification, condensation)
-- Navigation fluide entre sections pour maintenir la cohérence globale
-
-**Sédimentation** : Les améliorations apportées ici affinent le document pour la finalisation.
-
-### Phase 4 : Finalisation (exportation)
-
-La dernière phase assemble tous les éléments en un document cohérent :
-
-- Prévisualisation du document complet
-- Options d'export multiples (TXT, MD, JSON, avec PDF/DOCX à venir)
-- Inclusion optionnelle des métadonnées
-- Marquage du projet comme terminé avec sauvegarde dans l'historique
-- # Schéma d'intégration de la logique de sédimentation entre modules
-
-## Principe fondamental
-
-La logique de sédimentation consiste à faire en sorte que chaque module du système (Storyboard → Rédaction → Révision → Finalisation) s'appuie sur les données générées par le module précédent, avec un pré-remplissage automatique et une transmission fluide des informations.
-
-## Flux de données entre modules
-
-### 1. Storyboard → Rédaction
-
-- Le **Storyboard** génère la structure narrative (titres d'article, sections, sous-sections)
-- La **Rédaction** reçoit automatiquement cette structure et propose des formulaires pré-remplis avec:
-  - Les titres de sections définis dans le storyboard
-  - Des suggestions de contenu basées sur les thèses et citations identifiées
-  - Des indications narratives pour guider la rédaction de chaque section
-
-### 2. Rédaction → Révision
-
-- La **Rédaction** produit le contenu textuel de chaque section
-- La **Révision** reçoit ce contenu et propose:
-  - Une analyse automatique du style et de la cohérence
-  - Des suggestions d'amélioration contextuelles
-  - Des options de révision adaptées au style défini dans les préférences
-
-### 3. Révision → Finalisation
-
-- La **Révision** affine le contenu section par section
-- La **Finalisation** assemble automatiquement toutes les sections révisées et propose:
-  - Une prévisualisation du document complet
-  - Des options d'export adaptées au type de document
-  - Des suggestions finales pour la cohérence globale
-
-## Implémentation technique
-
-### Modifications requises pour chaque module
-
-#### Module Storyboard
-
-1. Ajouter des champs pour:
-   - Titre de l'article
-   - Structure existante (sections et sous-sections)
-   - Thèses principales par section
-
-2. Sauvegarder dans le contexte du projet:
-   - La structure narrative complète
-   - Les thèses et citations associées à chaque section
-   - Les contraintes formelles définies
-
-#### Module Rédaction
-
-1. Modifier l'interface pour:
-   - Afficher la structure définie dans le storyboard
-   - Pré-remplir les champs avec les thèses et citations identifiées
-   - Proposer des suggestions de contenu basées sur le storyboard
-
-2. Ajouter une fonctionnalité de:
-   - Génération assistée basée sur les thèses du storyboard
-   - Vérification de cohérence avec la structure narrative
-   - Sauvegarde des versions intermédiaires
-
-#### Module Révision
-
-1. Adapter l'interface pour:
-   - Afficher le contenu rédigé avec la structure narrative
-   - Proposer des analyses contextuelles basées sur le style défini
-   - Suggérer des améliorations spécifiques à chaque section
-
-2. Ajouter des outils de:
-   - Révision assistée par paragraphe
-   - Vérification de la cohérence entre sections
-   - Suggestions de transitions entre les parties
-
-#### Module Finalisation
-
-1. Enrichir l'interface pour:
-   - Assembler automatiquement toutes les sections révisées
-   - Proposer une prévisualisation structurée selon le storyboard
-   - Offrir des options d'export adaptées au type de document
-
-2. Ajouter des fonctionnalités de:
-   - Vérification finale de cohérence globale
-   - Génération de métadonnées basées sur le processus complet
-   - Export multi-format avec structure préservée
-
-## Persistance des données
-
-Pour assurer la continuité entre les modules, toutes les données générées doivent être:
-
-1. Sauvegardées dans le contexte du projet via `project_context`
-2. Accessibles à tous les modules via `integration_layer`
-3. Versionnées à chaque étape via `history_manager`
-4. Enrichies progressivement par l'`adaptive_engine`
-
-Cette architecture garantit que chaque module peut accéder aux données des modules précédents et les enrichir, créant ainsi une véritable sédimentation progressive du contenu académique.
-
-
-## Mémoire contextuelle à trois niveaux
-
-Le système maintient une mémoire contextuelle riche à trois niveaux distincts :
-
-### 1. Niveau projet
-
-- Structure complète du document (sections, titres, contenus)
-- Métadonnées (type, discipline, longueur cible)
-- Historique des versions avec descriptions des modifications
-- Statut d'avancement global et par section
-
-### 2. Niveau utilisateur
-
-- Préférences stylistiques et disciplinaires
-- Historique des projets et activités
-- Statistiques d'utilisation pour personnalisation
-- Suggestions adaptées aux habitudes d'écriture
-
-### 3. Niveau contenu
-
-- Analyse de complexité et de style par section
-- Suggestions contextuelles basées sur le contenu existant
-- Cohérence narrative et argumentative entre sections
-- Citations et références pertinentes au domaine
-
-## Avantages et cas d'usage
-
-### Pour les chercheurs et académiques
-
-- **Gain de temps** : Structuration guidée et assistance à chaque étape
-- **Cohérence améliorée** : Maintien de la continuité narrative et argumentative
-- **Personnalisation** : Adaptation au style et aux préférences individuelles
-- **Traçabilité** : Historique complet des versions et modifications
-
-### Pour les étudiants
-
-- **Apprentissage méthodologique** : Guide pas à pas du processus d'écriture académique
-- **Feedback immédiat** : Suggestions d'amélioration en temps réel
-- **Structure rigoureuse** : Aide à la construction logique des arguments
-- **Flexibilité** : Adaptation à différents types de travaux académiques
-
-### Pour les équipes de recherche
-
-- **Collaboration** : Base commune pour la structuration et la rédaction
-- **Standardisation** : Maintien d'un style cohérent à travers les documents
-- **Documentation** : Historique détaillé du processus de création
-- **Efficacité** : Réduction du temps consacré aux aspects formels
-
-## Perspectives d'évolution
-
-Le système est conçu pour évoluer selon plusieurs axes :
-
-### Intégrations futures
-
-- **Gestionnaires bibliographiques** (Zotero, Mendeley)
-- **Outils de visualisation de données** pour intégration de graphiques
-- **Plateformes de publication académique** pour soumission directe
-
-### Améliorations techniques
-
-- **Interface plus dynamique et interactive** avec animations et transitions fluides
-- **Support multiformat** complet (PDF, DOCX, LaTeX)
-- **Collaboration en temps réel** entre plusieurs utilisateurs
-- **Analyse sémantique avancée** pour suggestions plus pertinentes
-
-### Personnalisation avancée
-
-- **Styles disciplinaires spécifiques** (sciences dures, sciences sociales, etc.)
-- **Templates personnalisables** pour différents types de publications
-- **Adaptation aux normes éditoriales** de revues spécifiques
-- **Apprentissage continu** des préférences utilisateur
-
-## Conclusion
-
-Le Système de Rédaction Académique Intégré représente une approche novatrice de l'assistance à l'écriture scientifique, fondée sur une logique de sédimentation progressive et une triple relation (utilisateur-système, système-contenu, système-modèle IA). 
-
-En capitalisant sur les forces de l'intelligence artificielle tout en maintenant l'utilisateur au centre du processus créatif, ce système offre un équilibre optimal entre assistance automatisée et contrôle humain, permettant aux chercheurs et académiques de se concentrer sur le fond de leur travail plutôt que sur les aspects formels et techniques.
-
-
-## Installation
+### 🔄 Workflow de sédimentation en 4 phases
+
+1. **📋 Storyboard** : Structuration narrative et organisation des idées
+   - Création de sections avec thèses et citations
+   - Génération automatique via STORYBOARD ENGINE v1
+   - Intégration de la structure existante
+
+2. **✍️ Rédaction** : Création du contenu avec assistance IA et Fileverse
+   - Éditeur Fileverse intégré pour chaque section
+   - Pré-remplissage basé sur les données de sédimentation
+   - Assistance IA contextuelle
+   - Synchronisation automatique avec la blockchain
+
+3. **🔍 Révision** : Amélioration du style et de la cohérence
+   - Révision par paragraphe ou section complète
+   - Analyse de densité qualitative en temps réel
+   - Suggestions d'amélioration automatiques
+   - Contrôle qualité multi-critères
+
+4. **📄 Finalisation** : Export et publication
+   - Amélioration IA ligne par ligne
+   - Export multi-format (MD, HTML, LaTeX, PDF)
+   - Métriques de qualité avancées
+   - Publication décentralisée via Fileverse
+
+### 🌱 Système de sédimentation progressive
+
+Le cœur conceptuel du système repose sur **trois dimensions relationnelles** :
+
+- **Utilisateur ↔ Système** : Apprentissage des préférences et adaptation
+- **Système ↔ Contenu** : Enrichissement progressif des données entre modules
+- **Système ↔ IA** : Optimisation continue des suggestions et générations
+
+### 🔗 Intégration Fileverse avancée
+
+- **Pads décentralisés** : Chaque section dispose de son propre pad Fileverse
+- **Insights automatiques** : Extraction de thèses et citations depuis Fileverse
+- **Synchronisation bidirectionnelle** : Mise à jour automatique entre l'app et Fileverse
+- **Historique blockchain** : Traçabilité complète des modifications
+
+## 🏗️ Architecture technique
+
+### Modules core (noyau relationnel)
+- **UserProfile** : Gestion des préférences et historique utilisateur
+- **ProjectContext** : Maintien du contexte global de chaque projet
+- **SedimentationManager** : Orchestration des flux de données entre modules
+- **FileVerseManager** : Interface avec la plateforme Fileverse
+- **HistoryManager** : Suivi des versions et possibilité de restauration
+
+### Modules fonctionnels
+- **Storyboard** : Structuration narrative avec STORYBOARD ENGINE v1
+- **Rédaction** : Création de contenu avec éditeur Fileverse intégré
+- **Révision** : Amélioration assistée par IA
+- **Finalisation** : Export avancé et publication
+
+### Services d'IA
+- **OpenAI GPT** : Service principal pour génération et analyse
+- **Venice AI** : Service de fallback
+- **Cache intelligent** : Optimisation des performances
+
+## 🎮 Comment utiliser l'application
+
+### 1. 🔐 Authentification
+```
+Connectez-vous avec votre compte Google via OAuth2
+Support optionnel pour wallet Web3/MetaMask
+```
+
+### 2. 📁 Création de projet
+```
+Titre → Description → Type → Style → Discipline
+Le système adapte ses suggestions selon vos choix
+```
+
+### 3. 🔄 Workflow séquentiel
+
+#### Phase 1 : Storyboard
+- Définissez la structure de votre document
+- Utilisez le STORYBOARD ENGINE v1 pour la génération automatique
+- Créez des sections avec thèses et citations
+- La structure nourrit automatiquement la phase suivante
+
+#### Phase 2 : Rédaction
+- Chaque section s'ouvre dans l'éditeur Fileverse intégré
+- Pré-remplissage automatique basé sur le storyboard
+- Assistance IA contextuelle pour développer le contenu
+- Synchronisation automatique avec la blockchain
+
+#### Phase 3 : Révision
+- Révision par paragraphe ou section complète
+- Analyse de densité qualitative en temps réel
+- Suggestions d'amélioration automatiques
+- Contrôle qualité multi-critères
+
+#### Phase 4 : Finalisation
+- Amélioration IA ligne par ligne du document complet
+- Export multi-format avec options avancées
+- Publication décentralisée via Fileverse
+
+### 4. 📊 Suivi et analyse
+- Métriques de progression en temps réel
+- Analyse de densité qualitative
+- Historique complet des versions
+- Visualisation de la sédimentation
+
+## 💻 Installation et configuration
 
 ### Prérequis
-
 - Python 3.8 ou supérieur
-- pip (gestionnaire de paquets Python)
+- Compte Google (pour l'authentification)
+- Clé API OpenAI
+- Clé API Fileverse (optionnelle mais recommandée)
 
-### Installation des dépendances
-
+### Installation
 ```bash
+# Clonage du repository
+git clone https://github.com/votre-repo/academic-writing-system
+cd academic-writing-system
+
+# Installation des dépendances
 pip install -r requirements.txt
-```
 
-### Configuration
-
-1. Copiez le fichier template de secrets :
-```bash
+# Configuration des secrets
 cp secrets_template.toml secrets.toml
+# Éditez secrets.toml avec vos vraies clés API
 ```
 
-2. Éditez `secrets.toml` avec vos vraies clés API :
-   - Google OAuth (obligatoire)
-   - OpenAI API (obligatoire)
-   - Venice API (optionnel, fallback)
-   - Fileverse API (optionnel)
+### Configuration des clés API
+```toml
+[google_oauth]
+client_id = "votre-client-id"
+client_secret = "votre-client-secret"
 
-3. **IMPORTANT** : Ne committez jamais le fichier `secrets.toml` avec vos vraies clés !
+[openai]
+api_key = "votre-clé-openai"
 
-2. Assurez-vous que les dossiers de données sont créés (ils seront automatiquement créés au premier lancement) :
-
-```
-data/
-├── cache/
-├── exports/
-├── history/
-├── profiles/
-└── projects/
+[fileverse]
+api_key = "votre-clé-fileverse"  # Optionnel mais recommandé
 ```
 
-## Utilisation
-
-### Lancement de l'application
-
+### Lancement
 ```bash
-streamlit run app.py
+streamlit run app.py --server.port 5000 --server.address 0.0.0.0
 ```
 
-L'application sera accessible à l'adresse http://localhost:8501
+L'application sera accessible à l'adresse : `http://localhost:5000`
 
-### Workflow recommandé
+## 🔧 Fonctionnalités avancées
 
-1. **Création d'un projet** : Définissez le titre, la description et les préférences
-2. **Storyboard** : Structurez votre document en sections
-3. **Rédaction** : Rédigez le contenu de chaque section
-4. **Révision** : Améliorez le style et la cohérence
-5. **Finalisation** : Exportez votre document dans le format souhaité
+### 📝 STORYBOARD ENGINE v1
+Pipeline de traitement automatique en 5 étapes :
+1. Identification des thèses depuis un document source
+2. Association de citations marquantes
+3. Fusion et articulation logique des thèses
+4. Proposition d'enchaînement de sections
+5. Intégration dans la structure narrative
 
-## Styles d'écriture
+### 🎯 Analyse de densité qualitative
+- Score de densité par section et global
+- Recommandations d'amélioration automatiques
+- Analyse par paragraphe en temps réel
+- Métriques de cohérence narrative
 
-Le système prend en charge plusieurs styles d'écriture académique :
+### 🔗 Intégration Web3 (optionnelle)
+- Connexion MetaMask pour authentification décentralisée
+- Stockage IPFS pour documents volumineux
+- Smart contracts pour validation de versions
 
-- **Standard** : Style académique standard, clair et précis
-- **Académique** : Style académique formel avec terminologie spécialisée
-- **CRÉSUS-NAKAMOTO** : Style analytique avec tensions conceptuelles et perspective historique
-- **AcademicWritingCrypto** : Style technique orienté crypto-ethnographie
+### 📊 Tableaux de bord analytiques
+- Progression de sédimentation visuelle
+- Métriques de qualité du contenu
+- Historique des transitions entre phases
+- Statistiques d'utilisation personnalisées
 
-## Contribution
+## 🌟 Cas d'usage
 
-Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou à soumettre une pull request.
+### 👨‍🎓 Pour les étudiants
+- **Mémoires et thèses** : Structure guidée et assistance continue
+- **Articles de recherche** : Méthodologie académique rigoureuse
+- **Rapports de stage** : Templates adaptés et suggestions contextuelles
 
-## Licence
+### 👨‍🏫 Pour les chercheurs
+- **Publications scientifiques** : Optimisation du processus de rédaction
+- **Demandes de financement** : Structure argumentative renforcée
+- **Rapports de recherche** : Cohérence et rigueur académique
 
+### 🏫 Pour les institutions
+- **Standardisation** : Styles et formats institutionnels
+- **Collaboration** : Partage et co-édition sécurisés
+- **Archivage** : Historique complet et traçabilité
+
+## 🔮 Perspectives d'évolution
+
+### Court terme
+- [ ] Intégration Zotero/Mendeley pour gestion bibliographique
+- [ ] Templates spécialisés par discipline
+- [ ] Collaboration en temps réel multi-utilisateurs
+- [ ] Export PDF natif avec mise en forme avancée
+
+### Moyen terme
+- [ ] Support LaTeX complet avec compilation
+- [ ] Intégration avec plateformes de publication (arXiv, HAL)
+- [ ] IA spécialisée par domaine académique
+- [ ] Mobile app pour révision nomade
+
+### Long terme
+- [ ] Marketplace de templates communautaires
+- [ ] Blockchain native pour certification de plagiat
+- [ ] IA collaborative entre chercheurs
+- [ ] Métaverse académique intégré
+
+## 🤝 Contribution et communauté
+
+### Comment contribuer
+1. **Fork** le repository
+2. **Créez** une branche pour votre fonctionnalité
+3. **Committez** vos changements
+4. **Soumettez** une Pull Request
+
+### Guidelines de développement
+- Code Python 3.8+ avec type hints
+- Tests unitaires obligatoires pour nouvelles fonctionnalités
+- Documentation complète des APIs
+- Respect des principes de sédimentation
+
+## 📄 Licence et remerciements
+
+### Licence
 Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
 
-## Remerciements
+### Remerciements
+- **Fileverse** pour la plateforme de traitement de texte décentralisée
+- **OpenAI** pour les services d'intelligence artificielle
+- **Streamlit** pour le framework d'interface utilisateur
+- **Méthodologie Michelat** pour l'inspiration du workflow
+- **Communauté académique** pour les retours et suggestions
 
-- Méthodologie Michelat pour la structure de workflow
-- Agent de Construction Sectionnelle pour les techniques de rédaction
-- OpenAI pour les services d'IA
-- 
-## Outil de diagnostic OAuth
+## 🆘 Support et documentation
 
-Ce dépôt inclut un fichier `auth_debug_tool.py` pour tester et vérifier la configuration OAuth Google (secrets, redirection, permissions, etc.).
+### Documentation complète
+- [Guide utilisateur détaillé](docs/user-guide.md)
+- [Documentation API](docs/api-reference.md)
+- [Guide d'intégration Fileverse](docs/fileverse-integration.md)
+- [Tutoriels vidéo](docs/video-tutorials.md)
 
-- Lancez-le temporairement à la place de `app.py` si vous rencontrez des problèmes d'authentification.
-- Aucun impact sur le fonctionnement de l'application principale.
+### Support
+- **Issues GitHub** : Pour bugs et demandes de fonctionnalités
+- **Discussions** : Pour questions générales et partage d'expériences
+- **Email** : support@academic-writing-system.com
+
+---
+
+**🚀 Révolutionnez votre processus de rédaction académique avec la puissance de l'IA et la sécurité de la blockchain !**
