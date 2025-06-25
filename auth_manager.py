@@ -17,7 +17,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email'
 ]
 
-REDIRECT_URI = "https://academic-writing-system-mael-rolland.streamlit.app/"
+REDIRECT_URI = "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
 
 class GoogleAuthManager:
     """Gestionnaire d'authentification Google robuste avec gestion d'erreurs complète."""
