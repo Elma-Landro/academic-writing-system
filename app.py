@@ -269,6 +269,10 @@ def render_sidebar(projects: List[Dict[str, Any]], current_project_id: Optional[
 ###########################################
 def main():
     """Main application entry point."""
+    # Avertissement POC en mode privé
+    if not auth_manager.is_authenticated():
+        st.warning("🔒 **Application en mode POC privé** - Accès limité aux testeurs autorisés")
+    
     try:
         # Initialize system
         (
