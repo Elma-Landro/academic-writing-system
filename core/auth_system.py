@@ -29,6 +29,9 @@ class AuthenticationManager:
             self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
             self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
+        
+        # Detect current host for redirect URI
+        self.redirect_uri = self._get_redirect_uri()
 
         # Initialize OAuth2 component for Google
         if self.google_client_id and self.google_client_secret:
@@ -227,6 +230,25 @@ class AuthenticationManager:
             logger.warning("Invalid JWT token")
             return None
 
+    def _get_redirect_uri(self) -> str:
+        """Détecte automatiquement l'URL de redirection appropriée."""
+        try:
+            # Vérifier si on est sur Streamlit Cloud
+            import socket
+            hostname = socket.getfqdn()
+            
+            if 'streamlit.app' in hostname:
+                return "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
+            elif 'replit.dev' in hostname:
+                return "https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev/oauth2callback"
+            else:
+                # Fallback pour développement local
+                return "http://localhost:5000/oauth2callback"
+        except Exception as e:
+            logger.warning(f"Failed to detect hostname: {e}")
+            # Fallback par défaut
+            return "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
+
     def render_google_login(self):
         """Render Google login component."""
         if not self.google_oauth:
@@ -236,7 +258,7 @@ class AuthenticationManager:
         try:
             result = self.google_oauth.authorize_button(
                 "🔐 Login with Google",
-                redirect_uri="http://0.0.0.0:5000/oauth/callback",
+                redirect_uri=self.redirect_uri,
                 scope="openid email profile"
             )
 
