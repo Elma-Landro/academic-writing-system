@@ -1,4 +1,3 @@
-
 """
 Complete authentication system with Google OAuth2 and Web3 wallet support.
 """
@@ -18,12 +17,19 @@ logger = logging.getLogger(__name__)
 
 class AuthenticationManager:
     """Professional authentication manager with multiple auth methods."""
-    
+
     def __init__(self):
-        self.google_client_id = os.getenv('GOOGLE_CLIENT_ID')
-        self.google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        # Configuration depuis les secrets Streamlit
+        try:
+            # Try direct secret access first
+            self.google_client_id = st.secrets.get("GOOGLE_CLIENT_ID") or st.secrets["google_oauth"]["client_id"]
+            self.google_client_secret = st.secrets.get("GOOGLE_CLIENT_SECRET") or st.secrets["google_oauth"]["client_secret"]
+        except (KeyError, AttributeError):
+            # Fallback vers les variables d'environnement
+            self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+            self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
-        
+
         # Initialize OAuth2 component for Google
         if self.google_client_id and self.google_client_secret:
             self.google_oauth = OAuth2Component(
@@ -37,42 +43,42 @@ class AuthenticationManager:
         else:
             self.google_oauth = None
             logger.warning("Google OAuth credentials not configured")
-    
+
     def is_authenticated(self) -> bool:
         """Check if user is authenticated."""
         return 'user_id' in st.session_state and st.session_state.user_id is not None
-    
+
     def get_current_user(self) -> Optional[User]:
         """Get current authenticated user."""
         if not self.is_authenticated():
             return None
-        
+
         user_id = st.session_state.user_id
         with db_manager.get_session() as session:
             return session.query(User).filter_by(id=user_id).first()
-    
+
     def login_with_google(self) -> bool:
         """Handle Google OAuth login."""
         if not self.google_oauth:
             st.error("Google authentication is not configured.")
             return False
-        
+
         try:
             # Google OAuth scopes
             scope = "openid email profile"
-            
+
             # Get authorization URL
             authorization_url = self.google_oauth.get_authorization_url(
                 scope=scope,
                 redirect_uri="http://localhost:5000/oauth/callback"
             )
-            
+
             # Display login button
             if st.button("🔐 Login with Google", type="primary"):
                 st.write(f"Please visit this URL to authenticate: {authorization_url}")
                 st.code(authorization_url)
                 return False
-            
+
             # Handle callback (simplified for demo)
             if 'oauth_code' in st.query_params:
                 code = st.query_params['oauth_code']
@@ -80,29 +86,29 @@ class AuthenticationManager:
                     code=code,
                     redirect_uri="http://localhost:5000/oauth/callback"
                 )
-                
+
                 # Get user info from Google
                 user_info = self._get_google_user_info(token_data['access_token'])
-                
+
                 if user_info:
                     # Create or update user
                     user = self._handle_google_user(user_info)
-                    
+
                     # Set session
                     st.session_state.user_id = user.id
                     st.session_state.user_email = user.email
                     st.session_state.user_name = user.display_name
-                    
+
                     st.success(f"Welcome, {user.display_name}!")
                     return True
-            
+
             return False
-            
+
         except Exception as e:
             logger.error(f"Google login error: {e}")
             st.error(f"Login failed: {e}")
             return False
-    
+
     def login_with_wallet(self, wallet_address: str, signature: str) -> bool:
         """Handle Web3 wallet login."""
         try:
@@ -110,11 +116,11 @@ class AuthenticationManager:
             if not self._verify_wallet_signature(wallet_address, signature):
                 st.error("Invalid wallet signature.")
                 return False
-            
+
             # Find or create user by wallet address
             with db_manager.get_session() as session:
                 user = session.query(User).filter_by(wallet_address=wallet_address).first()
-                
+
                 if not user:
                     # Create new user with wallet
                     user = User(
@@ -124,57 +130,57 @@ class AuthenticationManager:
                     )
                     session.add(user)
                     session.commit()
-                
+
                 # Set session
                 st.session_state.user_id = user.id
                 st.session_state.user_email = user.email
                 st.session_state.user_name = user.display_name
                 st.session_state.wallet_address = wallet_address
-                
+
                 st.success(f"Welcome, {user.display_name}!")
                 return True
-                
+
         except Exception as e:
             logger.error(f"Wallet login error: {e}")
             st.error(f"Wallet login failed: {e}")
             return False
-    
+
     def logout(self):
         """Logout current user."""
         # Clear session state
         for key in ['user_id', 'user_email', 'user_name', 'wallet_address']:
             if key in st.session_state:
                 del st.session_state[key]
-        
+
         st.success("Logged out successfully!")
         st.rerun()
-    
+
     def _get_google_user_info(self, access_token: str) -> Optional[Dict[str, Any]]:
         """Get user information from Google API."""
         try:
             headers = {'Authorization': f'Bearer {access_token}'}
             response = httpx.get('https://www.googleapis.com/oauth2/v2/userinfo', headers=headers)
-            
+
             if response.status_code == 200:
                 return response.json()
             else:
                 logger.error(f"Failed to get Google user info: {response.status_code}")
                 return None
-                
+
         except Exception as e:
             logger.error(f"Error getting Google user info: {e}")
             return None
-    
+
     def _handle_google_user(self, user_info: Dict[str, Any]) -> User:
         """Create or update user from Google user info."""
         email = user_info.get('email')
         google_id = user_info.get('id')
         name = user_info.get('name', email.split('@')[0] if email else 'Unknown')
-        
+
         with db_manager.get_session() as session:
             # Try to find existing user
             user = session.query(User).filter_by(email=email).first()
-            
+
             if user:
                 # Update existing user
                 user.google_id = google_id
@@ -188,32 +194,32 @@ class AuthenticationManager:
                     display_name=name
                 )
                 session.add(user)
-            
+
             session.commit()
             return user
-    
+
     def _verify_wallet_signature(self, wallet_address: str, signature: str) -> bool:
         """Verify wallet signature with real cryptographic verification."""
         try:
             from eth_account.messages import encode_defunct
             from eth_account import Account
-            
+
             # Generate a challenge message
             challenge_message = f"Authenticate to Academic Writing System\nWallet: {wallet_address}\nTimestamp: {datetime.utcnow().isoformat()}"
-            
+
             # Encode the message
             encoded_message = encode_defunct(text=challenge_message)
-            
+
             # Recover the address from the signature
             recovered_address = Account.recover_message(encoded_message, signature=signature)
-            
+
             # Verify the recovered address matches the provided address
             return recovered_address.lower() == wallet_address.lower()
-            
+
         except Exception as e:
             logger.error(f"Wallet signature verification failed: {e}")
             return False
-    
+
     def generate_jwt_token(self, user_id: str) -> str:
         """Generate JWT token for API access."""
         payload = {
@@ -221,9 +227,9 @@ class AuthenticationManager:
             'exp': datetime.utcnow() + timedelta(hours=24),
             'iat': datetime.utcnow()
         }
-        
+
         return jwt.encode(payload, self.jwt_secret, algorithm='HS256')
-    
+
     def verify_jwt_token(self, token: str) -> Optional[str]:
         """Verify JWT token and return user ID."""
         try:
@@ -252,30 +258,30 @@ def require_auth(func):
 def render_login_page():
     """Render the login page with multiple authentication options."""
     st.title("🔐 Academic Writing System - Login")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.subheader("Google Account")
         st.write("Login with your Google account for full features:")
-        
+
         if auth_manager.google_oauth:
             auth_manager.login_with_google()
         else:
             st.warning("Google authentication not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
-    
+
     with col2:
         st.subheader("Web3 Wallet")
         st.write("Connect your crypto wallet:")
-        
+
         wallet_address = st.text_input("Wallet Address")
         signature = st.text_input("Signature", type="password")
-        
+
         if st.button("Connect Wallet"):
             if wallet_address and signature:
                 auth_manager.login_with_wallet(wallet_address, signature)
             else:
                 st.error("Please provide both wallet address and signature.")
-    
+
     st.markdown("---")
     st.info("💡 **Demo Mode**: For testing, you can use any wallet address (42 characters) with any signature.")
