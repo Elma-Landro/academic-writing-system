@@ -10,11 +10,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
 import json
+import os
 from openai import AsyncOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 import tiktoken
 
-from core.config_manager import config_manager
 from core.database_layer import db_manager, Section, Project
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class AIRequest:
     context: Dict[str, Any]
     max_tokens: int = 1000
     temperature: float = 0.7
-    model: str = "gpt-4o"
+    model: str = "gpt-4o-mini"
     stream: bool = False
     user_id: str = ""
     project_id: str = ""
@@ -46,7 +46,7 @@ class ContextManager:
     """Advanced context management for AI conversations."""
     
     def __init__(self):
-        self.encoding = tiktoken.encoding_for_model("gpt-4")
+        self.encoding = tiktoken.encoding_for_model("gpt-4o-mini")
         self.max_context_tokens = 8000  # Reserve space for response
         
     def count_tokens(self, text: str) -> int:
@@ -122,8 +122,12 @@ class AIServicePool:
     """Pool of AI service connections with load balancing."""
     
     def __init__(self):
-        self.ai_config = config_manager.get_ai_config()
-        self.openai_client = AsyncOpenAI(api_key=self.ai_config.openai_api_key)
+        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        if not self.openai_api_key:
+            logger.error("OPENAI_API_KEY not found in environment variables")
+            raise ValueError("OpenAI API key is required")
+            
+        self.openai_client = AsyncOpenAI(api_key=self.openai_api_key)
         self.context_manager = ContextManager()
         self.request_queue = asyncio.Queue()
         self.active_requests = 0
@@ -160,7 +164,7 @@ class AIServicePool:
                 ],
                 max_tokens=request.max_tokens,
                 temperature=request.temperature,
-                user=request.user_id
+                user=request.user_id[:64] if request.user_id else "anonymous"  # OpenAI user ID limit
             )
             
             processing_time = (datetime.now() - start_time).total_seconds()
@@ -168,6 +172,17 @@ class AIServicePool:
             # Calculate costs (approximate)
             total_tokens = input_tokens + response.usage.completion_tokens
             cost_estimate = self._calculate_cost(request.model, total_tokens)
+            
+            # Track usage in database
+            if request.user_id and request.project_id:
+                db_manager.track_ai_usage(
+                    user_id=request.user_id,
+                    project_id=request.project_id,
+                    prompt_tokens=input_tokens,
+                    completion_tokens=response.usage.completion_tokens,
+                    cost_estimate=f"${cost_estimate:.4f}",
+                    model_used=request.model
+                )
             
             return AIResponse(
                 content=response.choices[0].message.content,
@@ -211,11 +226,12 @@ class AIServicePool:
         """Calculate approximate cost for API usage."""
         # OpenAI pricing (approximate, as of 2024)
         pricing = {
-            'gpt-4o': 0.03 / 1000,  # $0.03 per 1K tokens
+            'gpt-4o': 0.005 / 1000,  # $0.005 per 1K tokens
+            'gpt-4o-mini': 0.00015 / 1000,  # $0.00015 per 1K tokens
             'gpt-3.5-turbo': 0.002 / 1000,  # $0.002 per 1K tokens
         }
         
-        rate = pricing.get(model, 0.03 / 1000)
+        rate = pricing.get(model, 0.005 / 1000)
         return total_tokens * rate
 
 class ProfessionalAIService:
@@ -304,3 +320,59 @@ class ProfessionalAIService:
 
 # Global AI service instance
 ai_service = ProfessionalAIService()
+
+# Legacy function for backward compatibility
+async def call_ai_safe(prompt: str, max_tokens: int = 1000, temperature: float = 0.7, 
+                      model: str = "gpt-4o-mini", use_cache: bool = False) -> Dict[str, Any]:
+    """Legacy function for backward compatibility."""
+    try:
+        response = await ai_service.generate_content(
+            prompt=prompt,
+            context={'style': 'Standard', 'project_type': 'Article académique'},
+            user_id="legacy",
+            max_tokens=max_tokens,
+            temperature=temperature,
+            model=model
+        )
+        
+        return {
+            "text": response.content,
+            "source": "ai_generated",
+            "model": response.model,
+            "tokens": response.tokens_used,
+            "cost": response.cost_estimate
+        }
+    except Exception as e:
+        logger.error(f"Legacy AI call failed: {e}")
+        return {
+            "text": "An error occurred while generating content.",
+            "source": "error",
+            "error": str(e)
+        }
+
+def generate_academic_text(prompt: str, style: str = "Standard", length: int = 1000) -> Dict[str, Any]:
+    """Synchronous wrapper for backward compatibility."""
+    try:
+        import asyncio
+        
+        # Get or create event loop
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        # Run the async function
+        result = loop.run_until_complete(
+            call_ai_safe(prompt=prompt, max_tokens=length, temperature=0.7)
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Sync AI call failed: {e}")
+        return {
+            "text": "An error occurred while generating content.",
+            "source": "error",
+            "error": str(e)
+        }

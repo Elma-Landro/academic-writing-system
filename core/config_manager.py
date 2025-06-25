@@ -1,156 +1,177 @@
 
 """
-Secure configuration management with environment validation and secret handling.
+Complete configuration manager with environment variables and secrets management.
 """
 
 import os
-from typing import Dict, Any, Optional
+import logging
 from dataclasses import dataclass
-from cryptography.fernet import Fernet
-import base64
-import json
+from typing import Optional, Dict, Any
+import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 @dataclass
-class DatabaseConfig:
-    url: str
-    pool_size: int = 10
-    max_overflow: int = 20
-    echo: bool = False
-
-@dataclass
-class AIConfig:
-    openai_api_key: str
-    venice_api_key: Optional[str] = None
-    default_model: str = "gpt-4o"
+class OpenAIConfig:
+    """OpenAI API configuration."""
+    api_key: str
+    model: str = "gpt-4o-mini"
     max_tokens: int = 4000
     temperature: float = 0.7
+    timeout: int = 60
+
+@dataclass
+class GoogleOAuthConfig:
+    """Google OAuth configuration."""
+    client_id: str
+    client_secret: str
+    redirect_uri: str = "http://localhost:5000/oauth/callback"
 
 @dataclass
 class FileVerseConfig:
+    """FileVerse API configuration."""
     api_key: str
-    base_url: str = "https://api.fileverse.io"
+    base_url: str = "https://api.fileverse.io/v1"
     timeout: int = 30
 
 @dataclass
-class AuthConfig:
-    google_client_id: str
-    google_client_secret: str
-    session_secret_key: str
-    token_expiry_hours: int = 24
+class DatabaseConfig:
+    """Database configuration."""
+    url: str = "sqlite:///data/academic_writing.db"
+    echo: bool = False
+    pool_size: int = 5
+    max_overflow: int = 10
 
-class SecureConfigManager:
-    """Secure configuration manager with encryption for sensitive data."""
+class ConfigurationManager:
+    """Professional configuration manager with environment variable handling."""
     
     def __init__(self):
-        self.encryption_key = self._get_or_create_encryption_key()
-        self.cipher = Fernet(self.encryption_key)
+        self._load_configuration()
+    
+    def _load_configuration(self):
+        """Load configuration from environment variables and Streamlit secrets."""
+        self.openai_config = self._get_openai_config()
+        self.google_oauth_config = self._get_google_oauth_config()
+        self.fileverse_config = self._get_fileverse_config()
+        self.database_config = self._get_database_config()
+    
+    def _get_openai_config(self) -> Optional[OpenAIConfig]:
+        """Get OpenAI configuration."""
+        api_key = self._get_secret('OPENAI_API_KEY', 'openai.api_key')
         
-    def _get_or_create_encryption_key(self) -> bytes:
-        """Get or create encryption key for sensitive configuration."""
-        key_file = "data/.config_key"
-        
-        if os.path.exists(key_file):
-            with open(key_file, 'rb') as f:
-                return f.read()
-        else:
-            key = Fernet.generate_key()
-            os.makedirs("data", exist_ok=True)
-            with open(key_file, 'wb') as f:
-                f.write(key)
-            return key
-    
-    def encrypt_value(self, value: str) -> str:
-        """Encrypt a sensitive configuration value."""
-        return self.cipher.encrypt(value.encode()).decode()
-    
-    def decrypt_value(self, encrypted_value: str) -> str:
-        """Decrypt a sensitive configuration value."""
-        return self.cipher.decrypt(encrypted_value.encode()).decode()
-    
-    def get_database_config(self) -> DatabaseConfig:
-        """Get database configuration with validation."""
-        database_url = os.getenv('DATABASE_URL')
-        if not database_url:
-            raise ValueError("DATABASE_URL environment variable is required")
-        
-        return DatabaseConfig(
-            url=database_url,
-            pool_size=int(os.getenv('DB_POOL_SIZE', '10')),
-            max_overflow=int(os.getenv('DB_MAX_OVERFLOW', '20')),
-            echo=os.getenv('DB_ECHO', 'false').lower() == 'true'
-        )
-    
-    def get_ai_config(self) -> AIConfig:
-        """Get AI configuration with API key validation."""
-        openai_key = os.getenv('OPENAI_API_KEY')
-        if not openai_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
-        
-        return AIConfig(
-            openai_api_key=openai_key,
-            venice_api_key=os.getenv('VENICE_API_KEY'),
-            default_model=os.getenv('AI_DEFAULT_MODEL', 'gpt-4o'),
-            max_tokens=int(os.getenv('AI_MAX_TOKENS', '4000')),
-            temperature=float(os.getenv('AI_TEMPERATURE', '0.7'))
-        )
-    
-    def get_fileverse_config(self) -> FileVerseConfig:
-        """Get FileVerse configuration."""
-        api_key = os.getenv('FILEVERSE_API_KEY')
         if not api_key:
-            raise ValueError("FILEVERSE_API_KEY environment variable is required")
+            logger.warning("OpenAI API key not configured")
+            return None
+        
+        return OpenAIConfig(
+            api_key=api_key,
+            model=self._get_secret('OPENAI_MODEL', 'openai.model', 'gpt-4o-mini'),
+            max_tokens=int(self._get_secret('OPENAI_MAX_TOKENS', 'openai.max_tokens', '4000')),
+            temperature=float(self._get_secret('OPENAI_TEMPERATURE', 'openai.temperature', '0.7')),
+            timeout=int(self._get_secret('OPENAI_TIMEOUT', 'openai.timeout', '60'))
+        )
+    
+    def _get_google_oauth_config(self) -> Optional[GoogleOAuthConfig]:
+        """Get Google OAuth configuration."""
+        client_id = self._get_secret('GOOGLE_CLIENT_ID', 'google_oauth.client_id')
+        client_secret = self._get_secret('GOOGLE_CLIENT_SECRET', 'google_oauth.client_secret')
+        
+        if not client_id or not client_secret:
+            logger.warning("Google OAuth credentials not configured")
+            return None
+        
+        return GoogleOAuthConfig(
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=self._get_secret('GOOGLE_REDIRECT_URI', 'google_oauth.redirect_uri', 'http://localhost:5000/oauth/callback')
+        )
+    
+    def _get_fileverse_config(self) -> Optional[FileVerseConfig]:
+        """Get FileVerse configuration."""
+        api_key = self._get_secret('FILEVERSE_API_KEY', 'fileverse.api_key')
+        
+        if not api_key:
+            logger.warning("FileVerse API key not configured")
+            return None
         
         return FileVerseConfig(
             api_key=api_key,
-            base_url=os.getenv('FILEVERSE_BASE_URL', 'https://api.fileverse.io'),
-            timeout=int(os.getenv('FILEVERSE_TIMEOUT', '30'))
+            base_url=self._get_secret('FILEVERSE_BASE_URL', 'fileverse.base_url', 'https://api.fileverse.io/v1'),
+            timeout=int(self._get_secret('FILEVERSE_TIMEOUT', 'fileverse.timeout', '30'))
         )
     
-    def get_auth_config(self) -> AuthConfig:
-        """Get authentication configuration."""
-        google_client_id = os.getenv('GOOGLE_CLIENT_ID')
-        google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
-        session_secret = os.getenv('SESSION_SECRET_KEY')
-        
-        if not all([google_client_id, google_client_secret, session_secret]):
-            raise ValueError("Authentication environment variables are required")
-        
-        return AuthConfig(
-            google_client_id=google_client_id,
-            google_client_secret=google_client_secret,
-            session_secret_key=session_secret,
-            token_expiry_hours=int(os.getenv('TOKEN_EXPIRY_HOURS', '24'))
+    def _get_database_config(self) -> DatabaseConfig:
+        """Get database configuration."""
+        return DatabaseConfig(
+            url=self._get_secret('DATABASE_URL', 'database.url', 'sqlite:///data/academic_writing.db'),
+            echo=self._get_secret('DATABASE_ECHO', 'database.echo', 'false').lower() == 'true',
+            pool_size=int(self._get_secret('DATABASE_POOL_SIZE', 'database.pool_size', '5')),
+            max_overflow=int(self._get_secret('DATABASE_MAX_OVERFLOW', 'database.max_overflow', '10'))
         )
     
-    def validate_all_configs(self) -> Dict[str, bool]:
-        """Validate all configuration sections."""
-        results = {}
+    def _get_secret(self, env_var: str, secrets_key: str, default: str = None) -> Optional[str]:
+        """Get secret from environment variable or Streamlit secrets."""
+        # Try environment variable first
+        value = os.getenv(env_var)
+        if value:
+            return value
         
+        # Try Streamlit secrets
         try:
-            self.get_database_config()
-            results['database'] = True
-        except Exception:
-            results['database'] = False
+            keys = secrets_key.split('.')
+            secrets = st.secrets
+            for key in keys:
+                secrets = secrets[key]
+            return str(secrets)
+        except (KeyError, AttributeError):
+            pass
         
-        try:
-            self.get_ai_config()
-            results['ai'] = True
-        except Exception:
-            results['ai'] = False
-        
-        try:
-            self.get_fileverse_config()
-            results['fileverse'] = True
-        except Exception:
-            results['fileverse'] = False
-        
-        try:
-            self.get_auth_config()
-            results['auth'] = True
-        except Exception:
-            results['auth'] = False
-        
-        return results
+        # Return default
+        return default
+    
+    def get_openai_config(self) -> OpenAIConfig:
+        """Get OpenAI configuration or raise error."""
+        if not self.openai_config:
+            raise ValueError("OpenAI configuration is not available. Please set OPENAI_API_KEY.")
+        return self.openai_config
+    
+    def get_google_oauth_config(self) -> GoogleOAuthConfig:
+        """Get Google OAuth configuration or raise error."""
+        if not self.google_oauth_config:
+            raise ValueError("Google OAuth configuration is not available. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
+        return self.google_oauth_config
+    
+    def get_fileverse_config(self) -> FileVerseConfig:
+        """Get FileVerse configuration or raise error."""
+        if not self.fileverse_config:
+            raise ValueError("FileVerse configuration is not available. Please set FILEVERSE_API_KEY.")
+        return self.fileverse_config
+    
+    def get_database_config(self) -> DatabaseConfig:
+        """Get database configuration."""
+        return self.database_config
+    
+    def is_openai_configured(self) -> bool:
+        """Check if OpenAI is configured."""
+        return self.openai_config is not None
+    
+    def is_google_oauth_configured(self) -> bool:
+        """Check if Google OAuth is configured."""
+        return self.google_oauth_config is not None
+    
+    def is_fileverse_configured(self) -> bool:
+        """Check if FileVerse is configured."""
+        return self.fileverse_config is not None
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get system configuration status."""
+        return {
+            'openai': self.is_openai_configured(),
+            'google_oauth': self.is_google_oauth_configured(),
+            'fileverse': self.is_fileverse_configured(),
+            'database': True,  # Database always has defaults
+            'environment': os.getenv('ENVIRONMENT', 'development')
+        }
 
 # Global configuration manager
-config_manager = SecureConfigManager()
+config_manager = ConfigurationManager()

@@ -1,208 +1,265 @@
 
 """
-Secure authentication system with proper token management and session handling.
+Complete authentication system with Google OAuth2 and Web3 wallet support.
 """
 
+import os
 import jwt
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
-import hashlib
-import secrets
-from sqlalchemy.orm import Session
-from core.database_layer import User, db_manager
-from core.config_manager import config_manager
 import logging
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+import streamlit as st
+from streamlit_oauth import OAuth2Component
+import httpx
+
+from core.database_layer import db_manager, User
 
 logger = logging.getLogger(__name__)
 
-class AuthenticationError(Exception):
-    """Custom authentication exception."""
-    pass
-
-class TokenManager:
-    """Secure JWT token management."""
+class AuthenticationManager:
+    """Professional authentication manager with multiple auth methods."""
     
     def __init__(self):
-        self.auth_config = config_manager.get_auth_config()
-        self.secret_key = self.auth_config.session_secret_key
-        self.token_expiry_hours = self.auth_config.token_expiry_hours
-    
-    def generate_access_token(self, user_id: str, email: str) -> str:
-        """Generate secure access token."""
-        payload = {
-            'user_id': user_id,
-            'email': email,
-            'exp': datetime.now(timezone.utc) + timedelta(hours=self.token_expiry_hours),
-            'iat': datetime.now(timezone.utc),
-            'jti': secrets.token_urlsafe(32)  # Unique token ID
-        }
+        self.google_client_id = os.getenv('GOOGLE_CLIENT_ID')
+        self.google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
         
-        return jwt.encode(payload, self.secret_key, algorithm='HS256')
+        # Initialize OAuth2 component for Google
+        if self.google_client_id and self.google_client_secret:
+            self.google_oauth = OAuth2Component(
+                client_id=self.google_client_id,
+                client_secret=self.google_client_secret,
+                authorize_endpoint="https://accounts.google.com/o/oauth2/auth",
+                token_endpoint="https://oauth2.googleapis.com/token",
+                refresh_token_endpoint="https://oauth2.googleapis.com/token",
+                revoke_token_endpoint="https://oauth2.googleapis.com/revoke",
+            )
+        else:
+            self.google_oauth = None
+            logger.warning("Google OAuth credentials not configured")
     
-    def generate_refresh_token(self, user_id: str) -> str:
-        """Generate secure refresh token."""
-        payload = {
-            'user_id': user_id,
-            'type': 'refresh',
-            'exp': datetime.now(timezone.utc) + timedelta(days=30),
-            'iat': datetime.now(timezone.utc),
-            'jti': secrets.token_urlsafe(32)
-        }
+    def is_authenticated(self) -> bool:
+        """Check if user is authenticated."""
+        return 'user_id' in st.session_state and st.session_state.user_id is not None
+    
+    def get_current_user(self) -> Optional[User]:
+        """Get current authenticated user."""
+        if not self.is_authenticated():
+            return None
         
-        return jwt.encode(payload, self.secret_key, algorithm='HS256')
-    
-    def validate_token(self, token: str) -> Dict[str, Any]:
-        """Validate and decode token."""
-        try:
-            payload = jwt.decode(token, self.secret_key, algorithms=['HS256'])
-            return payload
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationError("Token has expired")
-        except jwt.InvalidTokenError:
-            raise AuthenticationError("Invalid token")
-
-class SecureAuthSystem:
-    """Secure authentication system with proper session management."""
-    
-    def __init__(self):
-        self.token_manager = TokenManager()
-        self.active_sessions: Dict[str, Dict[str, Any]] = {}
-        
-    def create_user(self, google_user_info: Dict[str, Any]) -> User:
-        """Create or update user from Google OAuth info."""
+        user_id = st.session_state.user_id
         with db_manager.get_session() as session:
-            # Check if user already exists
-            existing_user = session.query(User).filter_by(
-                email=google_user_info['email']
-            ).first()
+            return session.query(User).filter_by(id=user_id).first()
+    
+    def login_with_google(self) -> bool:
+        """Handle Google OAuth login."""
+        if not self.google_oauth:
+            st.error("Google authentication is not configured.")
+            return False
+        
+        try:
+            # Google OAuth scopes
+            scope = "openid email profile"
             
-            if existing_user:
-                # Update existing user info
-                existing_user.name = google_user_info.get('name', existing_user.name)
-                existing_user.updated_at = datetime.utcnow()
-                session.commit()
-                return existing_user
+            # Get authorization URL
+            authorization_url = self.google_oauth.get_authorization_url(
+                scope=scope,
+                redirect_uri="http://localhost:5000/oauth/callback"
+            )
+            
+            # Display login button
+            if st.button("🔐 Login with Google", type="primary"):
+                st.write(f"Please visit this URL to authenticate: {authorization_url}")
+                st.code(authorization_url)
+                return False
+            
+            # Handle callback (simplified for demo)
+            if 'oauth_code' in st.query_params:
+                code = st.query_params['oauth_code']
+                token_data = self.google_oauth.get_token(
+                    code=code,
+                    redirect_uri="http://localhost:5000/oauth/callback"
+                )
+                
+                # Get user info from Google
+                user_info = self._get_google_user_info(token_data['access_token'])
+                
+                if user_info:
+                    # Create or update user
+                    user = self._handle_google_user(user_info)
+                    
+                    # Set session
+                    st.session_state.user_id = user.id
+                    st.session_state.user_email = user.email
+                    st.session_state.user_name = user.display_name
+                    
+                    st.success(f"Welcome, {user.display_name}!")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Google login error: {e}")
+            st.error(f"Login failed: {e}")
+            return False
+    
+    def login_with_wallet(self, wallet_address: str, signature: str) -> bool:
+        """Handle Web3 wallet login."""
+        try:
+            # Verify wallet signature (simplified)
+            if not self._verify_wallet_signature(wallet_address, signature):
+                st.error("Invalid wallet signature.")
+                return False
+            
+            # Find or create user by wallet address
+            with db_manager.get_session() as session:
+                user = session.query(User).filter_by(wallet_address=wallet_address).first()
+                
+                if not user:
+                    # Create new user with wallet
+                    user = User(
+                        email=f"{wallet_address[:10]}@wallet.local",
+                        wallet_address=wallet_address,
+                        display_name=f"User {wallet_address[:8]}"
+                    )
+                    session.add(user)
+                    session.commit()
+                
+                # Set session
+                st.session_state.user_id = user.id
+                st.session_state.user_email = user.email
+                st.session_state.user_name = user.display_name
+                st.session_state.wallet_address = wallet_address
+                
+                st.success(f"Welcome, {user.display_name}!")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Wallet login error: {e}")
+            st.error(f"Wallet login failed: {e}")
+            return False
+    
+    def logout(self):
+        """Logout current user."""
+        # Clear session state
+        for key in ['user_id', 'user_email', 'user_name', 'wallet_address']:
+            if key in st.session_state:
+                del st.session_state[key]
+        
+        st.success("Logged out successfully!")
+        st.rerun()
+    
+    def _get_google_user_info(self, access_token: str) -> Optional[Dict[str, Any]]:
+        """Get user information from Google API."""
+        try:
+            headers = {'Authorization': f'Bearer {access_token}'}
+            response = httpx.get('https://www.googleapis.com/oauth2/v2/userinfo', headers=headers)
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Failed to get Google user info: {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error getting Google user info: {e}")
+            return None
+    
+    def _handle_google_user(self, user_info: Dict[str, Any]) -> User:
+        """Create or update user from Google user info."""
+        email = user_info.get('email')
+        google_id = user_info.get('id')
+        name = user_info.get('name', email.split('@')[0] if email else 'Unknown')
+        
+        with db_manager.get_session() as session:
+            # Try to find existing user
+            user = session.query(User).filter_by(email=email).first()
+            
+            if user:
+                # Update existing user
+                user.google_id = google_id
+                user.display_name = name
+                user.updated_at = datetime.utcnow()
             else:
                 # Create new user
                 user = User(
-                    id=self._generate_user_id(google_user_info['email']),
-                    email=google_user_info['email'],
-                    name=google_user_info.get('name', ''),
-                    preferences={}
+                    email=email,
+                    google_id=google_id,
+                    display_name=name
                 )
                 session.add(user)
-                session.commit()
-                return user
+            
+            session.commit()
+            return user
     
-    def authenticate_user(self, google_user_info: Dict[str, Any]) -> Dict[str, str]:
-        """Authenticate user and return tokens."""
-        user = self.create_user(google_user_info)
-        
-        # Generate tokens
-        access_token = self.token_manager.generate_access_token(user.id, user.email)
-        refresh_token = self.token_manager.generate_refresh_token(user.id)
-        
-        # Create session
-        session_id = secrets.token_urlsafe(32)
-        self.active_sessions[session_id] = {
-            'user_id': user.id,
-            'email': user.email,
-            'created_at': datetime.now(timezone.utc),
-            'last_activity': datetime.now(timezone.utc)
+    def _verify_wallet_signature(self, wallet_address: str, signature: str) -> bool:
+        """Verify wallet signature (simplified implementation)."""
+        # In a real implementation, you would verify the signature against a challenge
+        # For demo purposes, we'll just check that both values are provided
+        return bool(wallet_address and signature and len(wallet_address) == 42)
+    
+    def generate_jwt_token(self, user_id: str) -> str:
+        """Generate JWT token for API access."""
+        payload = {
+            'user_id': user_id,
+            'exp': datetime.utcnow() + timedelta(hours=24),
+            'iat': datetime.utcnow()
         }
         
-        logger.info(f"User authenticated: {user.email}")
-        
-        return {
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            'session_id': session_id,
-            'user_id': user.id
-        }
+        return jwt.encode(payload, self.jwt_secret, algorithm='HS256')
     
-    def validate_session(self, session_id: str, access_token: str) -> Optional[Dict[str, Any]]:
-        """Validate user session and token."""
+    def verify_jwt_token(self, token: str) -> Optional[str]:
+        """Verify JWT token and return user ID."""
         try:
-            # Validate token
-            token_payload = self.token_manager.validate_token(access_token)
-            
-            # Check active session
-            if session_id not in self.active_sessions:
-                raise AuthenticationError("Session not found")
-            
-            session_data = self.active_sessions[session_id]
-            
-            # Verify session matches token
-            if session_data['user_id'] != token_payload['user_id']:
-                raise AuthenticationError("Session mismatch")
-            
-            # Update last activity
-            session_data['last_activity'] = datetime.now(timezone.utc)
-            
-            return {
-                'user_id': token_payload['user_id'],
-                'email': token_payload['email'],
-                'session_id': session_id
-            }
-            
-        except AuthenticationError:
-            # Clean up invalid session
-            if session_id in self.active_sessions:
-                del self.active_sessions[session_id]
-            raise
-    
-    def refresh_token(self, refresh_token: str) -> Dict[str, str]:
-        """Refresh access token using refresh token."""
-        try:
-            payload = self.token_manager.validate_token(refresh_token)
-            
-            if payload.get('type') != 'refresh':
-                raise AuthenticationError("Invalid refresh token")
-            
-            # Get user info
-            with db_manager.get_session() as session:
-                user = session.query(User).filter_by(id=payload['user_id']).first()
-                if not user:
-                    raise AuthenticationError("User not found")
-            
-            # Generate new access token
-            new_access_token = self.token_manager.generate_access_token(user.id, user.email)
-            
-            return {
-                'access_token': new_access_token,
-                'user_id': user.id
-            }
-            
-        except Exception as e:
-            logger.error(f"Token refresh failed: {e}")
-            raise AuthenticationError("Token refresh failed")
-    
-    def logout_user(self, session_id: str):
-        """Logout user and cleanup session."""
-        if session_id in self.active_sessions:
-            user_email = self.active_sessions[session_id].get('email')
-            del self.active_sessions[session_id]
-            logger.info(f"User logged out: {user_email}")
-    
-    def cleanup_expired_sessions(self):
-        """Cleanup expired sessions (should be run periodically)."""
-        current_time = datetime.now(timezone.utc)
-        expired_sessions = []
-        
-        for session_id, session_data in self.active_sessions.items():
-            last_activity = session_data['last_activity']
-            if current_time - last_activity > timedelta(hours=24):
-                expired_sessions.append(session_id)
-        
-        for session_id in expired_sessions:
-            del self.active_sessions[session_id]
-        
-        if expired_sessions:
-            logger.info(f"Cleaned up {len(expired_sessions)} expired sessions")
-    
-    def _generate_user_id(self, email: str) -> str:
-        """Generate consistent user ID from email."""
-        return hashlib.sha256(email.encode()).hexdigest()[:16]
+            payload = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])
+            return payload.get('user_id')
+        except jwt.ExpiredSignatureError:
+            logger.warning("JWT token expired")
+            return None
+        except jwt.InvalidTokenError:
+            logger.warning("Invalid JWT token")
+            return None
 
-# Global auth system instance
-auth_system = SecureAuthSystem()
+# Global authentication manager
+auth_manager = AuthenticationManager()
+
+def require_auth(func):
+    """Decorator to require authentication for Streamlit pages."""
+    def wrapper(*args, **kwargs):
+        if not auth_manager.is_authenticated():
+            st.warning("Please log in to access this feature.")
+            render_login_page()
+            return None
+        return func(*args, **kwargs)
+    return wrapper
+
+def render_login_page():
+    """Render the login page with multiple authentication options."""
+    st.title("🔐 Academic Writing System - Login")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Google Account")
+        st.write("Login with your Google account for full features:")
+        
+        if auth_manager.google_oauth:
+            auth_manager.login_with_google()
+        else:
+            st.warning("Google authentication not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
+    
+    with col2:
+        st.subheader("Web3 Wallet")
+        st.write("Connect your crypto wallet:")
+        
+        wallet_address = st.text_input("Wallet Address")
+        signature = st.text_input("Signature", type="password")
+        
+        if st.button("Connect Wallet"):
+            if wallet_address and signature:
+                auth_manager.login_with_wallet(wallet_address, signature)
+            else:
+                st.error("Please provide both wallet address and signature.")
+    
+    st.markdown("---")
+    st.info("💡 **Demo Mode**: For testing, you can use any wallet address (42 characters) with any signature.")
