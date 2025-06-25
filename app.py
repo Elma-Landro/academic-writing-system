@@ -192,6 +192,20 @@ def render_sidebar(projects: List[Dict[str, Any]], current_project_id: Optional[
     # Authentication status
     auth_status = auth_manager.get_auth_status()
 
+    # Initialiser Web3 si pas encore fait
+    from utils.web3_integration import initialize_web3_session
+    initialize_web3_session()
+
+    # Affichage des statuts d'authentification
+    if auth_status['is_authenticated']:
+        user = auth_status['user']
+        st.sidebar.success(f"👤 {user.get('name', user.get('email', 'Utilisateur'))}")
+
+    # Statut Web3 optionnel
+    if st.session_state.get("web3_authenticated"):
+        wallet_addr = st.session_state.get("web3_wallet_address", "")
+        st.sidebar.info(f"🔗 Wallet: {wallet_addr[:6]}...{wallet_addr[-4:]}")
+
     if auth_status['is_authenticated']:
         user = auth_status['user']
         st.sidebar.success(f"👤 {user.get('name', user.get('email', 'Utilisateur'))}")
