@@ -451,6 +451,13 @@ def main():
         logger.error(f"Main application error: {e}")
 
 if __name__ == "__main__":
+    # Configuration Streamlit pour le déploiement
+    st.set_page_config(
+        page_title="Academic Writing System",
+        page_icon="📝",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
     main()
 ```
 
