@@ -1,4 +1,3 @@
-
 """
 Module de finalisation enrichi pour le système de rédaction académique.
 Permet de finaliser un projet avec amélioration IA ligne par ligne et export avancé.
@@ -49,7 +48,7 @@ def render_finalisation(project_id: str, project_context, history_manager, adapt
     if sections:
         total_words = sum(len(section.get("content", "").split()) for section in sections)
         completed_sections = sum(1 for section in sections if section.get("content", "").strip())
-        
+
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Sections", f"{completed_sections}/{len(sections)}")
@@ -62,10 +61,10 @@ def render_finalisation(project_id: str, project_context, history_manager, adapt
     # Visualisation de la progression de sédimentation
     if sedimentation_manager:
         from utils.sedimentation_ui import render_sedimentation_progress, render_sedimentation_data_flow
-        
+
         st.markdown("### 🌱 Progression de la sédimentation")
         context = render_sedimentation_progress(sedimentation_manager, project_id)
-        
+
         # Affichage des métriques de qualité de sédimentation
         transition_data = context.global_metadata.get('transition_data', {}) if hasattr(context, 'global_metadata') else {}
         if transition_data:
@@ -128,7 +127,7 @@ def render_finalisation(project_id: str, project_context, history_manager, adapt
             )
 
             st.success("🎉 Projet terminé avec succès!")
-            
+
             # Affichage des statistiques finales
             display_completion_stats(project_data)
 
@@ -140,10 +139,10 @@ def render_finalisation(project_id: str, project_context, history_manager, adapt
 def render_document_improvement_tab(project, project_context, project_id):
     """Onglet d'amélioration du document avec IA ligne par ligne."""
     st.subheader("📖 Aperçu et amélioration du document")
-    
+
     sections = project.get("sections", [])
     preferences = project.get("preferences", {})
-    
+
     if not sections:
         st.warning("Ce projet ne contient aucune section.")
         return
@@ -160,7 +159,7 @@ def render_document_improvement_tab(project, project_context, project_id):
 
     # Section d'amélioration IA ligne par ligne
     st.markdown("### 🧠 Amélioration IA ligne par ligne")
-    
+
     col1, col2 = st.columns([2, 1])
     with col1:
         improve_style = st.selectbox(
@@ -176,7 +175,7 @@ def render_document_improvement_tab(project, project_context, project_id):
             improved_document = improve_document_with_ai(
                 full_text, improve_style, preferences, auto_apply
             )
-            
+
             if auto_apply:
                 # Mise à jour des sections avec le texte amélioré
                 update_sections_with_improved_text(
@@ -188,7 +187,7 @@ def render_document_improvement_tab(project, project_context, project_id):
                 # Affichage du texte amélioré pour validation
                 st.markdown("### 📝 Version améliorée (pour validation)")
                 st.text_area("Document amélioré", value=improved_document, height=400)
-                
+
                 if st.button("✅ Appliquer les améliorations"):
                     update_sections_with_improved_text(
                         project_context, project_id, sections, improved_document
@@ -225,27 +224,27 @@ def render_quality_control_tab(project, sections, sedimentation_manager, project
     ]
 
     st.markdown("### 🤖 Vérifications automatiques avec IA")
-    
+
     for check in checks:
         with st.expander(f"🔍 {check['name']}", expanded=False):
             st.write(check["description"])
-            
+
             if st.button(f"Analyser", key=f"check_{check['name'].replace(' ', '_')}"):
                 with st.spinner(f"Analyse de {check['name']} en cours..."):
                     full_text = get_full_document_text(sections)
-                    
+
                     analysis = call_ai_safe(
                         prompt=f"{check['prompt']}:\n\n{full_text[:3000]}...",
                         max_tokens=800,
                         temperature=0.3
                     )
-                    
+
                     st.markdown("**Résultat de l'analyse:**")
                     st.write(analysis.get("text", "Erreur dans l'analyse"))
 
     # Statistiques avancées du document
     st.markdown("### 📊 Métriques de qualité")
-    
+
     if sections:
         display_advanced_document_metrics(sections)
 
@@ -257,17 +256,17 @@ def render_quality_control_tab(project, sections, sedimentation_manager, project
 def render_density_analysis_tab(project, sections):
     """Onglet d'analyse de densité du contenu."""
     st.subheader("📊 Analyse de densité du contenu")
-    
+
     if not sections:
         st.warning("Aucune section à analyser.")
         return
 
     # Calcul des métriques de densité
     density_metrics = calculate_content_density(sections)
-    
+
     # Visualisation des métriques
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("#### 📈 Densité par section")
         if HAS_PANDAS:
@@ -281,7 +280,7 @@ def render_density_analysis_tab(project, sections):
                 for section in sections
             ])
             st.dataframe(df_density)
-        
+
     with col2:
         st.markdown("#### 🎯 Recommandations")
         for section in sections:
@@ -297,30 +296,30 @@ def render_advanced_export_tab(project, sections, project_id):
 
     # Options d'export
     col1, col2 = st.columns(2)
-    
+
     with col1:
         export_format = st.selectbox(
             "Format d'export",
             ["Markdown", "PDF (via HTML)", "Word (simulé)", "HTML", "LaTeX", "JSON complet"]
         )
-        
+
         include_metadata = st.checkbox("Inclure les métadonnées", value=True)
-        
+
     with col2:
         include_history = st.checkbox("Inclure l'historique de révision", value=False)
         include_stats = st.checkbox("Inclure les statistiques", value=True)
 
     # Aperçu du format d'export
     st.markdown("### 👀 Aperçu de l'export")
-    
+
     if export_format == "Markdown":
         preview = generate_markdown_export(project, sections, include_metadata, include_stats)
         st.code(preview[:1000] + "..." if len(preview) > 1000 else preview, language="markdown")
-    
+
     elif export_format == "HTML":
         preview = generate_html_export(project, sections, include_metadata)
         st.code(preview[:1000] + "..." if len(preview) > 1000 else preview, language="html")
-    
+
     elif export_format == "LaTeX":
         preview = generate_latex_export(project, sections, include_metadata)
         st.code(preview[:1000] + "..." if len(preview) > 1000 else preview, language="latex")
@@ -331,10 +330,10 @@ def render_advanced_export_tab(project, sections, project_id):
             exported_content = generate_export_content(
                 project, sections, export_format, include_metadata, include_stats, include_history
             )
-            
+
             file_extension = get_file_extension(export_format)
             filename = f"{project.get('title', 'document').replace(' ', '_')}{file_extension}"
-            
+
             st.download_button(
                 label=f"💾 Télécharger {export_format}",
                 data=exported_content,
@@ -345,7 +344,7 @@ def render_advanced_export_tab(project, sections, project_id):
 def render_ai_suggestions_tab(project, sections, project_context, project_id):
     """Onglet de suggestions IA avancées."""
     st.subheader("🎯 Suggestions IA personnalisées")
-    
+
     if not sections:
         st.warning("Aucune section pour générer des suggestions.")
         return
@@ -358,17 +357,17 @@ def render_ai_suggestions_tab(project, sections, project_context, project_id):
         "Citations supplémentaires",
         "Conclusion plus forte"
     ]
-    
+
     selected_suggestions = st.multiselect(
         "Types de suggestions souhaitées",
         suggestion_types,
         default=["Amélioration stylistique", "Enrichissement du contenu"]
     )
-    
+
     if st.button("🧠 Générer les suggestions"):
         with st.spinner("Génération des suggestions IA..."):
             full_text = get_full_document_text(sections)
-            
+
             for suggestion_type in selected_suggestions:
                 with st.expander(f"💡 {suggestion_type}", expanded=True):
                     suggestion = generate_ai_suggestion(full_text, suggestion_type, project.get("preferences", {}))
@@ -380,37 +379,37 @@ def improve_document_with_ai(full_text: str, style: str, preferences: Dict, auto
     """Améliore le document ligne par ligne avec l'IA."""
     lines = full_text.strip().split("\n")
     improved_lines = []
-    
+
     progress_bar = st.progress(0)
     status_text = st.empty()
-    
+
     for i, line in enumerate(lines):
         progress_bar.progress((i + 1) / len(lines))
         status_text.text(f"Amélioration ligne {i + 1}/{len(lines)}")
-        
+
         if line.strip() == "" or line.startswith("#"):
             improved_lines.append(line)
             continue
-            
+
         response = call_ai_safe(
             prompt=f"Améliore cette phrase pour plus de clarté et un style {style.lower()} :\n\n{line.strip()}",
             max_tokens=250,
             temperature=0.6,
             use_cache=True
         )
-        
+
         improved_line = response.get("text", line).strip()
         improved_lines.append(improved_line)
-    
+
     progress_bar.empty()
     status_text.empty()
-    
+
     return "\n".join(improved_lines)
 
 def update_sections_with_improved_text(project_context, project_id, sections, improved_text):
     """Met à jour les sections avec le texte amélioré."""
     improved_sections = parse_improved_text_to_sections(improved_text)
-    
+
     for i, section in enumerate(sections):
         if i < len(improved_sections):
             project_context.update_section(
@@ -432,7 +431,7 @@ def display_advanced_document_metrics(sections: List[Dict]):
     total_words = sum(len(section.get("content", "").split()) for section in sections)
     total_sentences = sum(section.get("content", "").count('.') for section in sections)
     total_paragraphs = sum(section.get("content", "").count('\n\n') for section in sections)
-    
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Mots totaux", total_words)
@@ -455,19 +454,19 @@ def calculate_content_density(sections: List[Dict]) -> Dict:
 def generate_markdown_export(project, sections, include_metadata, include_stats):
     """Génère l'export Markdown."""
     content = f"# {project.get('title', 'Document')}\n\n"
-    
+
     if include_metadata:
         content += f"**Description:** {project.get('description', '')}\n\n"
         content += f"**Date de création:** {project.get('created_date', '')}\n\n"
-    
+
     for section in sections:
         content += f"## {section.get('title', 'Section')}\n\n"
         content += f"{section.get('content', '')}\n\n"
-    
+
     if include_stats:
         total_words = sum(len(s.get("content", "").split()) for s in sections)
         content += f"\n---\n**Statistiques:** {total_words} mots, {len(sections)} sections\n"
-    
+
     return content
 
 def generate_html_export(project, sections, include_metadata):
@@ -481,14 +480,14 @@ def generate_html_export(project, sections, include_metadata):
 <body>
     <h1>{project.get('title', 'Document')}</h1>
 """
-    
+
     if include_metadata:
         html += f"    <p><strong>Description:</strong> {project.get('description', '')}</p>\n"
-    
+
     for section in sections:
         html += f"    <h2>{section.get('title', 'Section')}</h2>\n"
         html += f"    <div>{section.get('content', '').replace(chr(10), '<br>')}</div>\n"
-    
+
     html += "</body>\n</html>"
     return html
 
@@ -500,11 +499,11 @@ def generate_latex_export(project, sections, include_metadata):
 \\begin{{document}}
 \\maketitle
 """
-    
+
     for section in sections:
         latex += f"\\section{{{section.get('title', 'Section')}}}\n"
         latex += f"{section.get('content', '')}\n\n"
-    
+
     latex += "\\end{document}"
     return latex
 
@@ -552,9 +551,9 @@ def generate_ai_suggestion(full_text, suggestion_type, preferences):
         "Citations supplémentaires": "Suggère où ajouter des citations pour renforcer l'argumentation",
         "Conclusion plus forte": "Propose une conclusion plus percutante basée sur le développement"
     }
-    
+
     prompt = f"{prompts.get(suggestion_type, 'Analyse ce document')}:\n\n{full_text[:2000]}..."
-    
+
     return call_ai_safe(
         prompt=prompt,
         max_tokens=600,
@@ -565,7 +564,7 @@ def parse_improved_text_to_sections(improved_text):
     """Parse le texte amélioré en sections."""
     sections = []
     current_section = {"title": "", "content": ""}
-    
+
     for line in improved_text.split("\n"):
         if line.startswith("# "):
             if current_section["content"]:
@@ -573,19 +572,19 @@ def parse_improved_text_to_sections(improved_text):
             current_section = {"title": line[2:], "content": ""}
         else:
             current_section["content"] += line + "\n"
-    
+
     if current_section["content"]:
         sections.append(current_section)
-    
+
     return sections
 
 def display_completion_stats(project_data):
     """Affiche les statistiques de complétion du projet."""
     sections = project_data.get("sections", [])
     total_words = sum(len(s.get("content", "").split()) for s in sections)
-    
+
     st.balloons()
-    
+
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("📝 Sections complétées", len(sections))
@@ -599,7 +598,7 @@ def display_sedimentation_quality_metrics(sedimentation_manager, project_id):
     try:
         if hasattr(sedimentation_manager, 'get_project_quality_metrics'):
             metrics = sedimentation_manager.get_project_quality_metrics(project_id)
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 st.metric("Richesse contextuelle", f"{metrics.get('context_richness', 0):.1f}%")
