@@ -105,7 +105,12 @@ def initialize_app():
         # Show warnings for missing configurations (only if sidebar is available)
         try:
             if not system_status.get('openai', False):
-                st.sidebar.warning("⚠️ OpenAI API not configured")
+                st.sidebar.error("🚫 OpenAI API not configured")
+                st.sidebar.markdown("""
+                **To use AI features:**
+                1. Get an OpenAI API key from [OpenAI](https://platform.openai.com/api-keys)
+                2. Add it in the Secrets tab as `OPENAI_API_KEY`
+                """)
 
             if not system_status.get('google_oauth', False):
                 st.sidebar.warning("⚠️ Google OAuth not configured")

@@ -123,15 +123,24 @@ class AIServicePool:
     
     def __init__(self):
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        if not self.openai_api_key:
-            logger.error("OPENAI_API_KEY not found in environment variables")
-            raise ValueError("OpenAI API key is required")
-            
-        self.openai_client = AsyncOpenAI(api_key=self.openai_api_key)
+        self.openai_client = None
         self.context_manager = ContextManager()
         self.request_queue = asyncio.Queue()
         self.active_requests = 0
         self.max_concurrent_requests = 5
+        self._initialized = False
+        
+    def _ensure_initialized(self):
+        """Ensure the service is properly initialized."""
+        if self._initialized:
+            return
+            
+        if not self.openai_api_key:
+            logger.error("OPENAI_API_KEY not found in environment variables")
+            raise ValueError("OpenAI API key is required. Please configure it in the Secrets tab.")
+            
+        self.openai_client = AsyncOpenAI(api_key=self.openai_api_key)
+        self._initialized = True
         
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_request(self, request: AIRequest) -> AIResponse:
@@ -139,6 +148,8 @@ class AIServicePool:
         start_time = datetime.now()
         
         try:
+            # Ensure service is initialized
+            self._ensure_initialized()
             # Build context window
             context_prompt = self.context_manager.build_context_window(
                 request.prompt,
@@ -238,8 +249,13 @@ class ProfessionalAIService:
     """Professional AI service with proper architecture."""
     
     def __init__(self):
-        self.service_pool = AIServicePool()
+        self.service_pool = None
         self.usage_tracker = {}
+        
+    def _ensure_service_pool(self):
+        """Ensure service pool is initialized."""
+        if self.service_pool is None:
+            self.service_pool = AIServicePool()
         
     async def generate_content(self,
                              prompt: str,
@@ -249,19 +265,34 @@ class ProfessionalAIService:
                              **kwargs) -> AIResponse:
         """Generate academic content with full context awareness."""
         
-        request = AIRequest(
-            prompt=prompt,
-            context=context,
-            user_id=user_id,
-            project_id=project_id,
-            **kwargs
-        )
-        
-        # Track usage
-        self._track_usage(user_id)
-        
-        # Process request
-        response = await self.service_pool.process_request(request)
+        try:
+            # Ensure service pool is available
+            self._ensure_service_pool()
+            
+            request = AIRequest(
+                prompt=prompt,
+                context=context,
+                user_id=user_id,
+                project_id=project_id,
+                **kwargs
+            )
+            
+            # Track usage
+            self._track_usage(user_id)
+            
+            # Process request
+            response = await self.service_pool.process_request(request)
+        except ValueError as e:
+            # Return graceful error response for API key issues
+            return AIResponse(
+                content="AI service is not available. Please configure the OpenAI API key in the Secrets tab.",
+                model=kwargs.get('model', 'gpt-4o-mini'),
+                tokens_used=0,
+                cost_estimate=0.0,
+                processing_time=0.0,
+                context_preserved=False,
+                error=str(e)
+            )
         
         # Log for monitoring
         logger.info(f"AI request processed for user {user_id}: {response.tokens_used} tokens, ${response.cost_estimate:.4f}")
@@ -318,7 +349,7 @@ class ProfessionalAIService:
             'average_per_day': sum(stats.values()) / days
         }
 
-# Global AI service instance
+# Global AI service instance - now safe to initialize
 ai_service = ProfessionalAIService()
 
 # Legacy function for backward compatibility
