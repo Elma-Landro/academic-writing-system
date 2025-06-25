@@ -186,22 +186,5 @@ def analyze_text_structure(text: str) -> Dict[str, Any]:
     )
 
     return result
-import streamlit as st
-
-class AIService:
-    def __init__(self):
-        """Initialise le service IA avec configuration flexible."""
-        # Configuration API depuis les secrets
-        self.openai_api_key = self._get_api_key("openai", "api_key", "OPENAI_API_KEY")
-        self.venice_api_key = self._get_api_key("venice", "api_key", "VENICE_API_KEY")
-
-    def _get_api_key(self, secret_section: str, secret_key: str, env_var: str) -> Optional[str]:
-        """Récupère une clé API depuis les secrets Streamlit ou les variables d'environnement."""
-        try:
-            # Essayer d'abord les secrets Streamlit
-            if hasattr(st, 'secrets') and secret_section in st.secrets:
-                return st.secrets[secret_section].get(secret_key)
-            # Sinon utiliser les variables d'environnement (secrets Replit)
-            return os.getenv(env_var)
-        except Exception:
-            return None
+# La classe AIService a été supprimée car elle causait des conflits
+# Toutes les fonctionnalités sont disponibles via call_ai_safe() et generate_academic_text()
