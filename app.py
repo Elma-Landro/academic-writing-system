@@ -204,6 +204,15 @@ def render_home_page(user):
         st.markdown("---")
 
         # Quick actions
+        # Debug OAuth URLs
+        if st.checkbox("🔧 Debug OAuth URLs"):
+            st.code(f"""
+URLs à configurer dans Google Cloud Console :
+- http://localhost:5000/oauth2callback
+- https://{auth_manager.get_replit_url()}/oauth2callback
+- https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback
+            """)
+
         st.markdown("### Quick Actions")
 
         col1, col2, col3 = st.columns(3)

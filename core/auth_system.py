@@ -29,7 +29,7 @@ class AuthenticationManager:
             self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
             self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
-        
+
         # Detect current host for redirect URI
         self.redirect_uri = self._get_redirect_uri()
 
@@ -237,11 +237,11 @@ class AuthenticationManager:
             replit_dev_domain = os.getenv('REPLIT_DEV_DOMAIN')
             if replit_dev_domain:
                 return f"https://{replit_dev_domain}/oauth2callback"
-            
+
             # Fallback pour Streamlit Cloud
             import socket
             hostname = socket.getfqdn()
-            
+
             if 'streamlit.app' in hostname:
                 return "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
             else:
