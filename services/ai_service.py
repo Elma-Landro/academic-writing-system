@@ -250,11 +250,18 @@ class ProfessionalAIService:
     def __init__(self):
         self.service_pool = None
         self.usage_tracker = {}
+        self._initialization_attempted = False
 
     def _ensure_service_pool(self):
         """Ensure service pool is initialized."""
-        if self.service_pool is None:
-            self.service_pool = AIServicePool()
+        if self.service_pool is None and not self._initialization_attempted:
+            try:
+                self.service_pool = AIServicePool()
+                self._initialization_attempted = True
+            except ValueError as e:
+                self._initialization_attempted = True
+                # Don't raise here, let the generate_content method handle it gracefully
+                logger.warning(f"AI service initialization failed: {e}")
 
     async def generate_content(self,
                              prompt: str,
@@ -267,6 +274,18 @@ class ProfessionalAIService:
         try:
             # Ensure service pool is available
             self._ensure_service_pool()
+
+            # Check if service pool was successfully initialized
+            if self.service_pool is None:
+                return AIResponse(
+                    content="AI service is not available. Please configure the OpenAI API key in the Secrets tab.",
+                    model=kwargs.get('model', 'gpt-4o-mini'),
+                    tokens_used=0,
+                    cost_estimate=0.0,
+                    processing_time=0.0,
+                    context_preserved=False,
+                    error="OpenAI API key not configured"
+                )
 
             request = AIRequest(
                 prompt=prompt,
@@ -281,10 +300,17 @@ class ProfessionalAIService:
 
             # Process request
             response = await self.service_pool.process_request(request)
-        except ValueError as e:
-            # Return graceful error response for API key issues
+            
+            # Log for monitoring
+            if response.error is None:
+                logger.info(f"AI request processed for user {user_id}: {response.tokens_used} tokens, ${response.cost_estimate:.4f}")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Unexpected error in generate_content: {e}")
             return AIResponse(
-                content="AI service is not available. Please configure the OpenAI API key in the Secrets tab.",
+                content="An unexpected error occurred. Please try again later.",
                 model=kwargs.get('model', 'gpt-4o-mini'),
                 tokens_used=0,
                 cost_estimate=0.0,
@@ -292,11 +318,6 @@ class ProfessionalAIService:
                 context_preserved=False,
                 error=str(e)
             )
-
-        # Log for monitoring
-        logger.info(f"AI request processed for user {user_id}: {response.tokens_used} tokens, ${response.cost_estimate:.4f}")
-
-        return response
 
     async def analyze_text(self,
                           text: str,

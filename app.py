@@ -522,4 +522,23 @@ def main():
         logger.error(f"Main application error: {e}")
 
 if __name__ == "__main__":
-    main()
+    """Application principale avec gestion d'état professionnel."""
+
+    # Configuration de la page
+    #configure_page()
+
+    # Initialisation du style CSS
+    #inject_custom_css()
+
+    # Vérification du service IA
+    if ai_service is None:
+        st.warning("⚠️ Service IA non disponible. Certaines fonctionnalités seront limitées.")
+
+    # Initialisation des gestionnaires
+    #sedimentation_manager = SedimentationManager()
+    #fileverse_manager = FileVerseManager()
+
+    # Authentification
+    if not auth_manager.is_authenticated():
+        render_login_page()
+        #return
