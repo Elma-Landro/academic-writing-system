@@ -55,18 +55,18 @@ if not core_modules_available or not page_modules_available:
     st.error("🚫 Application Error")
     st.markdown("""
     **The application encountered an import error.**
-    
+
     This might be due to:
     - Missing dependencies
     - Configuration issues
     - Module path problems
-    
+
     Please check the logs for more details.
     """)
-    
+
     if st.button("🔄 Retry"):
         st.rerun()
-    
+
     st.stop()
 
 def initialize_app():
@@ -452,3 +452,502 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
+
+```python
+"""
+Academic Writing System - Main Application
+Complete Streamlit application with proper authentication and module integration.
+"""
+
+import streamlit as st
+import logging
+import os
+from datetime import datetime
+from typing import Optional, Any
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Page configuration
+st.set_page_config(
+    page_title="Academic Writing System",
+    page_icon="📝",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Import core modules with better error handling
+core_modules_available = True
+page_modules_available = True
+
+try:
+    from core.auth_system import auth_manager, require_auth, render_login_page
+    from core.database_layer import db_manager
+    from core.config_manager import config_manager
+    from core.adaptive_engine import AdaptiveEngine
+    from core.integration_layer import IntegrationLayer
+    from services.ai_service import ai_service
+    logger.info("Core modules imported successfully")
+except ImportError as e:
+    logger.error(f"Failed to import core modules: {e}")
+    core_modules_available = False
+
+try:
+    from modules.storyboard import render_storyboard
+    from modules.redaction import render_redaction
+    from modules.revision import render_revision
+    from modules.finalisation import render_finalisation
+    logger.info("Page modules imported successfully")
+except ImportError as e:
+    logger.error(f"Failed to import page modules: {e}")
+    page_modules_available = False
+
+# Show error page if modules are not available
+if not core_modules_available or not page_modules_available:
+    st.error("🚫 Application Error")
+    st.markdown("""
+    **The application encountered an import error.**
+
+    This might be due to:
+    - Missing dependencies
+    - Configuration issues
+    - Module path problems
+
+    Please check the logs for more details.
+    """)
+
+    if st.button("🔄 Retry"):
+        st.rerun()
+
+    st.stop()
+
+def initialize_app():
+    """Initialize the application and check system status."""
+    try:
+        # Initialize session state
+        if 'page' not in st.session_state:
+            st.session_state.page = 'home'
+
+        if 'project_id' not in st.session_state:
+            st.session_state.project_id = None
+
+        # Initialize system components with error handling
+        adaptive_engine = None
+        integration_layer = None
+        system_status = {'openai': False, 'google_oauth': False, 'fileverse': False}
+
+        try:
+            adaptive_engine = AdaptiveEngine()
+            logger.info("AdaptiveEngine initialized successfully")
+        except Exception as e:
+            logger.warning(f"AdaptiveEngine initialization failed: {e}")
+
+        try:
+            integration_layer = IntegrationLayer()
+            logger.info("IntegrationLayer initialized successfully")
+        except Exception as e:
+            logger.warning(f"IntegrationLayer initialization failed: {e}")
+
+        try:
+            system_status = config_manager.get_system_status()
+            logger.info("System status retrieved successfully")
+        except Exception as e:
+            logger.warning(f"Failed to get system status: {e}")
+
+        # Show warnings for missing configurations (only if sidebar is available)
+        try:
+            if not system_status.get('openai', False):
+                st.sidebar.warning("⚠️ OpenAI API not configured")
+
+            if not system_status.get('google_oauth', False):
+                st.sidebar.warning("⚠️ Google OAuth not configured")
+
+            if not system_status.get('fileverse', False):
+                st.sidebar.info("ℹ️ FileVerse not configured (optional)")
+        except Exception as e:
+            logger.warning(f"Failed to show sidebar warnings: {e}")
+
+        return adaptive_engine, integration_layer, system_status
+
+    except Exception as e:
+        st.error(f"Failed to initialize application: {e}")
+        logger.error(f"App initialization error: {e}")
+        st.markdown("**Debug info:**")
+        st.code(str(e))
+        st.stop()
+
+def render_sidebar(user: Optional[Any]) -> None:
+    """Render the navigation sidebar."""
+    with st.sidebar:
+        st.title("📝 Academic Writing")
+
+        if user:
+            st.write(f"👤 {user.display_name}")
+
+            # Navigation menu
+            st.markdown("### Navigation")
+
+            # Navigation constants
+            NAVIGATION_PAGES = {
+                'home': '🏠 Home',
+                'projects': '📁 My Projects',
+                'storyboard': '📋 Storyboard',
+                'redaction': '✍️ Writing',
+                'revision': '🔍 Revision',
+                'finalisation': '📄 Finalization',
+                'profile': '⚙️ Profile'
+            }
+
+            pages = NAVIGATION_PAGES
+
+            for page_key, page_name in pages.items():
+                if st.button(page_name, key=f"nav_{page_key}"):
+                    st.session_state.page = page_key
+                    st.rerun()
+
+            st.markdown("---")
+
+            # Project selector
+            if st.session_state.project_id:
+                st.markdown("### Current Project")
+                try:
+                    projects = db_manager.get_user_projects(user.id)
+                    current_project = next((p for p in projects if p.id == st.session_state.project_id), None)
+                    if current_project:
+                        st.write(f"📝 {current_project.title}")
+                        if st.button("Change Project"):
+                            st.session_state.project_id = None
+                            st.session_state.page = 'projects'
+                            st.rerun()
+                except Exception as e:
+                    st.error(f"Error loading project: {e}")
+
+            st.markdown("---")
+
+            # Logout button
+            if st.button("🚪 Logout"):
+                auth_manager.logout()
+
+        else:
+            st.write("Please log in to continue")
+
+def render_home_page(user):
+    """Render the home page."""
+    st.title("🏠 Academic Writing System")
+    st.markdown("### Welcome to the next generation of academic writing!")
+
+    if user:
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("📁 Projects", len(db_manager.get_user_projects(user.id)))
+
+        with col2:
+            st.metric("✍️ Status", "Active")
+
+        with col3:
+            st.metric("🚀 Version", "2.0")
+
+        st.markdown("---")
+
+        # Quick actions
+        st.markdown("### Quick Actions")
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            if st.button("📝 New Project", type="primary"):
+                st.session_state.page = 'projects'
+                st.rerun()
+
+        with col2:
+            if st.button("📋 Continue Writing"):
+                projects = db_manager.get_user_projects(user.id)
+                if projects:
+                    st.session_state.project_id = projects[0].id
+                    st.session_state.page = 'storyboard'
+                    st.rerun()
+                else:
+                    st.info("No projects found. Create one first!")
+
+        with col3:
+            if st.button("📊 View Analytics"):
+                st.session_state.page = 'profile'
+                st.rerun()
+
+        # Recent projects
+        st.markdown("### Recent Projects")
+        projects = db_manager.get_user_projects(user.id)
+
+        if projects:
+            for project in projects[:3]:
+                with st.expander(f"📝 {project.title}"):
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.write(f"**Type:** {project.project_type}")
+                        st.write(f"**Status:** {project.status}")
+                        st.write(f"**Updated:** {project.updated_at.strftime('%Y-%m-%d %H:%M')}")
+                    with col2:
+                        if st.button("Open", key=f"open_{project.id}"):
+                            st.session_state.project_id = project.id
+                            st.session_state.page = 'storyboard'
+                            st.rerun()
+        else:
+            st.info("No projects yet. Create your first project to get started!")
+
+    else:
+        st.info("Please log in to access your projects and start writing.")
+
+def render_projects_page(user):
+    """Render the projects management page."""
+    st.title("📁 My Projects")
+
+    # Create new project
+    with st.expander("➕ Create New Project", expanded=False):
+        with st.form("new_project"):
+            title = st.text_input("Project Title")
+            description = st.text_area("Description")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                project_type = st.selectbox("Type", [
+                    "Article académique",
+                    "Thèse",
+                    "Mémoire",
+                    "Rapport de recherche",
+                    "Communication"
+                ])
+
+            with col2:
+                style = st.selectbox("Style", [
+                    "Académique",
+                    "Standard",
+                    "CRÉSUS-NAKAMOTO",
+                    "AcademicWritingCrypto"
+                ])
+
+            if st.form_submit_button("Create Project", type="primary"):
+                if title:
+                    try:
+                        project = db_manager.create_project(
+                            user_id=user.id,
+                            title=title,
+                            description=description,
+                            project_type=project_type,
+                            style=style
+                        )
+                        st.success(f"Project '{title}' created successfully!")
+                        st.session_state.project_id = project.id
+                        st.session_state.page = 'storyboard'
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to create project: {e}")
+                else:
+                    st.error("Please provide a project title.")
+
+    # List existing projects
+    st.markdown("### Your Projects")
+    projects = db_manager.get_user_projects(user.id)
+
+    if projects:
+        for project in projects:
+            with st.container():
+                col1, col2, col3 = st.columns([4, 2, 1])
+
+                with col1:
+                    st.markdown(f"**{project.title}**")
+                    st.caption(f"{project.project_type} • {project.style}")
+                    if project.description:
+                        st.write(project.description[:100] + "..." if len(project.description) > 100 else project.description)
+
+                with col2:
+                    st.write(f"**Status:** {project.status}")
+                    st.write(f"**Updated:** {project.updated_at.strftime('%Y-%m-%d')}")
+
+                with col3:
+                    if st.button("Open", key=f"open_project_{project.id}"):
+                        st.session_state.project_id = project.id
+                        st.session_state.page = 'storyboard'
+                        st.rerun()
+
+                st.markdown("---")
+    else:
+        st.info("No projects found. Create your first project above!")
+
+def render_profile_page(user):
+    """Render the user profile page."""
+    st.title("⚙️ User Profile")
+
+    # User information
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Account Information")
+        st.write(f"**Name:** {user.display_name}")
+        st.write(f"**Email:** {user.email}")
+        st.write(f"**Member since:** {user.created_at.strftime('%Y-%m-%d')}")
+
+        if user.wallet_address:
+            st.write(f"**Wallet:** {user.wallet_address[:10]}...{user.wallet_address[-8:]}")
+
+    with col2:
+        st.subheader("Statistics")
+        projects = db_manager.get_user_projects(user.id)
+        st.metric("Total Projects", len(projects))
+
+        completed_projects = [p for p in projects if p.status == 'completed']
+        st.metric("Completed Projects", len(completed_projects))
+
+        # AI usage stats (if available)
+        try:
+            usage_stats = ai_service.get_usage_stats(user.id)
+            st.metric("AI Requests (7 days)", usage_stats['total_requests'])
+        except:
+            st.metric("AI Requests", "N/A")
+
+    # Preferences
+    st.subheader("Preferences")
+    with st.form("preferences"):
+        default_style = st.selectbox("Default Writing Style", [
+            "Académique",
+            "Standard", 
+            "CRÉSUS-NAKAMOTO",
+            "AcademicWritingCrypto"
+        ], index=0)
+
+        default_length = st.number_input("Default Article Length (words)", 
+                                       min_value=500, max_value=10000, value=3000)
+
+        if st.form_submit_button("Save Preferences"):
+            try:
+                # Update user preferences in database
+                with db_manager.get_session() as session:
+                    user_obj = session.query(db_manager.User).filter_by(id=user.id).first()
+                    if user_obj:
+                        user_obj.preferences = {
+                            'default_style': default_style,
+                            'default_length': default_length
+                        }
+                        session.commit()
+                st.success("Preferences saved!")
+            except Exception as e:
+                st.error(f"Failed to save preferences: {e}")
+
+def render_main_navigation():
+    """Render the main navigation interface."""
+    st.title("🎓 Academic Writing System")
+    st.subheader("Système de rédaction académique avec IA générative")
+
+    # Project selection
+    current_user = st.session_state.get('current_user')
+    if current_user:
+        projects = db_manager.get_user_projects(current_user.id) #project_context.get_all_projects()
+
+        if projects:
+            project_options = {f"{p.title} ({p.id})": p.id
+                             for p in projects}
+            selected_project = st.selectbox(
+                "Sélectionner un projet",
+                options=list(project_options.keys()),
+                key="project_selector"
+            )
+
+            if selected_project:
+                project_id = project_options[selected_project]
+                st.session_state.project_id = project_id
+
+        # Navigation buttons - 4 étapes principales + Web3
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            if st.button("🎯 Storyboard IA", key="nav_storyboard"):
+                st.session_state.page = "storyboard"
+                st.rerun()
+
+        with col2:
+            if st.button("✍️ Rédaction", key="nav_redaction"):
+                st.session_state.page = "redaction"
+                st.rerun()
+
+        with col3:
+            if st.button("🔍 Révision", key="nav_revision"):
+                st.session_state.page = "revision"
+                st.rerun()
+
+        with col4:
+            if st.button("📄 Finalisation", key="nav_finalisation"):
+                st.session_state.page = "finalisation"
+                st.rerun()
+
+        # Section Web3 séparée
+        st.markdown("---")
+        col_web3, col_settings = st.columns(2)
+
+        with col_web3:
+            if st.button("🔗 Authentification Web3", key="nav_web3"):
+                st.session_state.page = "web3"
+                st.rerun()
+
+        with col_settings:
+            if st.button("⚙️ Paramètres", key="nav_settings"):
+                st.session_state.page = "settings"
+                st.rerun()
+
+def initialize_web3_session():
+    st.write("Initializing Web3 Session (Placeholder)")
+
+def render_web3_auth_interface():
+    st.write("Web3 Authentication Interface (Placeholder)")
+
+def main():
+    """Main application entry point."""
+    try:
+        # Initialize application
+        adaptive_engine, integration_layer, system_status = initialize_app()
+
+        # Check authentication
+        user = auth_manager.get_current_user()
+
+        # Render sidebar
+        render_sidebar(user)
+
+        # Route to appropriate page
+        if not user:
+            render_login_page()
+            return
+
+        page = st.session_state.get('page', 'home')
+
+        if page == 'home':
+            render_home_page(user)
+
+        elif page == 'projects':
+            render_projects_page(user)
+
+        elif page == 'profile':
+            render_profile_page(user)
+
+        elif page == 'storyboard':
+            if st.session_state.project_id:
+                render_storyboard(st.session_state.project_id, None, None, adaptive_engine)
+            else:
+                st.warning("Please select a project first.")
+                st.session_state.page = 'projects'
+                st.rerun()
+
+        elif page == 'redaction':
+            if st.session_state.project_id:
+                render_redaction(st.session_state.project_id, None, None, adaptive_engine)
+            else:
+                st.warning("Please select a project first.")
+                st.session_state.page = 'projects'
+                st.rerun()
+
+        elif page == 'revision':
+            if st.session_state.project_id:
+                render_revision(st.session_state.project_id, None, None, adaptive_engine)
