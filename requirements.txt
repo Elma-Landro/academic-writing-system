@@ -45,5 +45,4 @@ watchdog==5.0.3
 eth-account
 web3
 eth-account
-web3
 sqlalchemy
