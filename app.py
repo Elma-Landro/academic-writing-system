@@ -7,6 +7,7 @@ import streamlit as st
 import logging
 import os
 from datetime import datetime
+from typing import Optional, Any
 
 # Configure logging
 logging.basicConfig(
@@ -23,7 +24,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Import core modules
+# Import core modules with better error handling
+core_modules_available = True
+page_modules_available = True
+
 try:
     from core.auth_system import auth_manager, require_auth, render_login_page
     from core.database_layer import db_manager
@@ -31,18 +35,38 @@ try:
     from core.adaptive_engine import AdaptiveEngine
     from core.integration_layer import IntegrationLayer
     from services.ai_service import ai_service
+    logger.info("Core modules imported successfully")
 except ImportError as e:
-    st.error(f"Failed to import core modules: {e}")
-    st.stop()
+    logger.error(f"Failed to import core modules: {e}")
+    core_modules_available = False
 
-# Import page modules
 try:
     from modules.storyboard import render_storyboard
     from modules.redaction import render_redaction
     from modules.revision import render_revision
     from modules.finalisation import render_finalisation
+    logger.info("Page modules imported successfully")
 except ImportError as e:
-    st.error(f"Failed to import page modules: {e}")
+    logger.error(f"Failed to import page modules: {e}")
+    page_modules_available = False
+
+# Show error page if modules are not available
+if not core_modules_available or not page_modules_available:
+    st.error("🚫 Application Error")
+    st.markdown("""
+    **The application encountered an import error.**
+    
+    This might be due to:
+    - Missing dependencies
+    - Configuration issues
+    - Module path problems
+    
+    Please check the logs for more details.
+    """)
+    
+    if st.button("🔄 Retry"):
+        st.rerun()
+    
     st.stop()
 
 def initialize_app():
@@ -55,28 +79,49 @@ def initialize_app():
         if 'project_id' not in st.session_state:
             st.session_state.project_id = None
 
-        # Initialize system components
-        adaptive_engine = AdaptiveEngine()
-        integration_layer = IntegrationLayer()
+        # Initialize system components with error handling
+        adaptive_engine = None
+        integration_layer = None
+        system_status = {'openai': False, 'google_oauth': False, 'fileverse': False}
 
-        # Check system configuration
-        system_status = config_manager.get_system_status()
+        try:
+            adaptive_engine = AdaptiveEngine()
+            logger.info("AdaptiveEngine initialized successfully")
+        except Exception as e:
+            logger.warning(f"AdaptiveEngine initialization failed: {e}")
 
-        # Show warnings for missing configurations
-        if not system_status['openai']:
-            st.sidebar.warning("⚠️ OpenAI API not configured")
+        try:
+            integration_layer = IntegrationLayer()
+            logger.info("IntegrationLayer initialized successfully")
+        except Exception as e:
+            logger.warning(f"IntegrationLayer initialization failed: {e}")
 
-        if not system_status['google_oauth']:
-            st.sidebar.warning("⚠️ Google OAuth not configured")
+        try:
+            system_status = config_manager.get_system_status()
+            logger.info("System status retrieved successfully")
+        except Exception as e:
+            logger.warning(f"Failed to get system status: {e}")
 
-        if not system_status['fileverse']:
-            st.sidebar.info("ℹ️ FileVerse not configured (optional)")
+        # Show warnings for missing configurations (only if sidebar is available)
+        try:
+            if not system_status.get('openai', False):
+                st.sidebar.warning("⚠️ OpenAI API not configured")
+
+            if not system_status.get('google_oauth', False):
+                st.sidebar.warning("⚠️ Google OAuth not configured")
+
+            if not system_status.get('fileverse', False):
+                st.sidebar.info("ℹ️ FileVerse not configured (optional)")
+        except Exception as e:
+            logger.warning(f"Failed to show sidebar warnings: {e}")
 
         return adaptive_engine, integration_layer, system_status
 
     except Exception as e:
         st.error(f"Failed to initialize application: {e}")
         logger.error(f"App initialization error: {e}")
+        st.markdown("**Debug info:**")
+        st.code(str(e))
         st.stop()
 
 def render_sidebar(user: Optional[Any]) -> None:
