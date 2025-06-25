@@ -54,9 +54,10 @@ class SedimentationContext:
 class SedimentationManager:
     """Gestionnaire central de la logique de sédimentation."""
     
-    def __init__(self, project_context, history_manager):
+    def __init__(self, project_context, history_manager, fileverse_manager=None):
         self.project_context = project_context
         self.history_manager = history_manager
+        self.fileverse_manager = fileverse_manager
         self.transitions = {
             SedimentationPhase.STORYBOARD: self._prepare_redaction_data,
             SedimentationPhase.REDACTION: self._prepare_revision_data,
@@ -159,12 +160,19 @@ class SedimentationManager:
         }
     
     def _prepare_redaction_data(self, context: SedimentationContext) -> Dict[str, Any]:
-        """Prépare les données pour la phase de rédaction."""
+        """Prépare les données pour la phase de rédaction, enrichies par Fileverse."""
         redaction_data = {
             'pre_filled_sections': [],
             'narrative_structure': context.global_metadata.get('narrative_structure', {}),
-            'writing_guidelines': {}
+            'writing_guidelines': {},
+            'fileverse_integration': False
         }
+        
+        # Synchronisation avec Fileverse si disponible
+        if self.fileverse_manager and self.fileverse_manager.is_available():
+            redaction_data['fileverse_integration'] = True
+            sync_report = self.fileverse_manager.sync_with_sedimentation(context.project_id, self)
+            redaction_data['fileverse_sync'] = sync_report
         
         for section in context.sections:
             section_redaction = {
@@ -174,8 +182,22 @@ class SedimentationManager:
                 'suggested_content': self._generate_content_suggestions(section),
                 'theses': section.theses,
                 'citations': section.citations,
-                'writing_prompts': self._generate_writing_prompts(section)
+                'writing_prompts': self._generate_writing_prompts(section),
+                'fileverse_pad_id': section.metadata.get('fileverse_pad_id') if section.metadata else None
             }
+            
+            # Enrichissement avec les données Fileverse
+            if (self.fileverse_manager and section.metadata and 
+                section.metadata.get('fileverse_pad_id')):
+                fileverse_insights = self.fileverse_manager.extract_sedimentation_insights(
+                    section.metadata['fileverse_pad_id']
+                )
+                section_redaction['fileverse_insights'] = fileverse_insights
+                
+                # Enrichissement des thèses et citations avec Fileverse
+                section_redaction['theses'].extend(fileverse_insights.get('theses', []))
+                section_redaction['citations'].extend(fileverse_insights.get('citations', []))
+            
             redaction_data['pre_filled_sections'].append(section_redaction)
         
         return {'success': True, 'data': redaction_data}

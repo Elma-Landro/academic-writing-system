@@ -91,6 +91,8 @@ from core.project_context import ProjectContext
 from core.adaptive_engine import AdaptiveEngine
 from core.history_manager import HistoryManager
 from sedimentation_manager import SedimentationManager, SedimentationPhase
+# Add FileVerseManager
+from core.fileverse_manager import FileVerseManager
 
 # Render modules
 from modules.storyboard import render_storyboard
@@ -127,8 +129,11 @@ def initialize_system():
         project_context = integration_layer.get_module("project_context")
         history_manager = integration_layer.get_module("history_manager")
 
+        # Initialiser le gestionnaire Fileverse
+        fileverse_manager = FileVerseManager()
+
         # Initialiser le gestionnaire de sédimentation
-        sedimentation_manager = SedimentationManager(project_context, history_manager)
+        sedimentation_manager = SedimentationManager(project_context, history_manager, fileverse_manager)
 
         return (
             integration_layer,
@@ -136,7 +141,8 @@ def initialize_system():
             project_context,
             integration_layer.get_module("adaptive_engine"),
             history_manager,
-            sedimentation_manager
+            sedimentation_manager,
+            fileverse_manager
         )
     except Exception as e:
         st.error(f"Erreur d'initialisation: {str(e)}")
@@ -271,7 +277,8 @@ def main():
             project_context,
             adaptive_engine,
             history_manager,
-            sedimentation_manager
+            sedimentation_manager,
+            fileverse_manager
         ) = initialize_system()
 
         # Get projects if authenticated
@@ -337,7 +344,7 @@ def main():
                 col1, col2 = st.columns(2)
 
                 with col1:
-                    title = st.text_input("Titre du projet *", placeholder="Ex: Analyse des crypto-monnaies")
+                    title = st.text_input("Titre du projet *", placeholder="Ex: Analyse des crypto-monaies")
                     project_type = st.selectbox("Type de projet", config.PROJECT_TYPES)
                     discipline = st.selectbox("Discipline", config.DISCIPLINES)
 

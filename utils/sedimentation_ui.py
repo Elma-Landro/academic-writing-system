@@ -147,11 +147,25 @@ def render_phase_transition_widget(sedimentation_manager: SedimentationManager, 
                     st.error(f"❌ Erreur de transition: {result.get('error', 'Erreur inconnue')}")
 
 def render_sedimentation_data_flow(context, transition_data: Optional[Dict[str, Any]] = None):
-    """Affiche le flux de données de sédimentation."""
+    """Affiche le flux de données de sédimentation enrichi par Fileverse."""
     if not transition_data:
         return
     
     st.subheader("📊 Données de transition")
+    
+    # Indicateur d'intégration Fileverse
+    if transition_data.get('fileverse_integration'):
+        st.success("🔗 **Intégration Fileverse active** - Données enrichies par le traitement de texte collaboratif")
+        
+        if 'fileverse_sync' in transition_data:
+            sync_data = transition_data['fileverse_sync']
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Pads créés", sync_data.get('created_pads', 0))
+            with col2:
+                st.metric("Pads mis à jour", sync_data.get('updated_pads', 0))
+            with col3:
+                st.metric("Sections sync", sync_data.get('synced_sections', 0))
     
     # Afficher les données selon la phase
     if context.current_phase == SedimentationPhase.REDACTION and 'pre_filled_sections' in transition_data:
