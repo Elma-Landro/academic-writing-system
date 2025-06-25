@@ -1,297 +1,335 @@
+
 # Système de Rédaction Académique Intégré
-## 🚀 Avec traitement de texte décentralisé Fileverse intégré
+## 🚀 Plateforme d'assistance IA pour la rédaction académique
 
-Une plateforme révolutionnaire combinant **assistance IA avancée** et **traitement de texte décentralisé Fileverse** pour révolutionner la rédaction académique collaborative.
+Une plateforme avancée combinant **intelligence artificielle** et **workflow de sédimentation progressive** pour révolutionner la rédaction académique structurée.
 
-## 🎯 Vision et concept
+## 🎯 Architecture technique
 
-Le Système de Rédaction Académique Intégré est la première plateforme à combiner une **logique de sédimentation progressive** avec un **traitement de texte décentralisé**. Contrairement aux outils d'écriture traditionnels, chaque étape enrichit la suivante tout en bénéficiant de la puissance collaborative et sécurisée de la blockchain Fileverse.
-
-### 🌟 Révolution : Traitement de texte Fileverse intégré
-
-L'application intègre **Fileverse**, une plateforme de traitement de texte décentralisée qui révolutionne la façon dont nous créons et gérons les documents académiques :
-
-#### 🔥 Avantages révolutionnaires de Fileverse
-
-**🖊️ Traitement de texte intégré**
-- Interface d'édition WYSIWYG directement dans l'application
-- Pas besoin de basculer entre outils - tout est unifié
-- Synchronisation automatique bidirectionnelle
-
-**🔐 Sécurité et décentralisation**
-- Vos documents sont sécurisés sur la blockchain
-- Résistance à la censure et pérennité garantie
-- Propriété intellectuelle traçable et inviolable
-
-**👥 Collaboration révolutionnaire**
-- Co-édition en temps réel avec historique complet
-- Commentaires et suggestions contextuelles
-- Gestion des droits granulaire par section
-
-**🔄 Sédimentation alimentée par Fileverse**
-- Chaque modification dans Fileverse enrichit la sédimentation
-- Extraction automatique de thèses et citations
-- Itérations successives entre phases optimisées
-- Mémoire contextuelle renforcée par la blockchain
-
-## 🚀 Fonctionnalités principales
-
-### 🔄 Workflow de sédimentation en 4 phases
-
-1. **📋 Storyboard** : Structuration narrative et organisation des idées
-   - Création de sections avec thèses et citations
-   - Génération automatique via STORYBOARD ENGINE v1
-   - Intégration de la structure existante
-
-2. **✍️ Rédaction** : Création du contenu avec assistance IA et Fileverse
-   - Éditeur Fileverse intégré pour chaque section
-   - Pré-remplissage basé sur les données de sédimentation
-   - Assistance IA contextuelle
-   - Synchronisation automatique avec la blockchain
-
-3. **🔍 Révision** : Amélioration du style et de la cohérence
-   - Révision par paragraphe ou section complète
-   - Analyse de densité qualitative en temps réel
-   - Suggestions d'amélioration automatiques
-   - Contrôle qualité multi-critères
-
-4. **📄 Finalisation** : Export et publication
-   - Amélioration IA ligne par ligne
-   - Export multi-format (MD, HTML, LaTeX, PDF)
-   - Métriques de qualité avancées
-   - Publication décentralisée via Fileverse
-
-### 🌱 Système de sédimentation progressive
-
-Le cœur conceptuel du système repose sur **trois dimensions relationnelles** :
-
-- **Utilisateur ↔ Système** : Apprentissage des préférences et adaptation
-- **Système ↔ Contenu** : Enrichissement progressif des données entre modules
-- **Système ↔ IA** : Optimisation continue des suggestions et générations
-
-### 🔗 Intégration Fileverse avancée
-
-- **Pads décentralisés** : Chaque section dispose de son propre pad Fileverse
-- **Insights automatiques** : Extraction de thèses et citations depuis Fileverse
-- **Synchronisation bidirectionnelle** : Mise à jour automatique entre l'app et Fileverse
-- **Historique blockchain** : Traçabilité complète des modifications
-
-## 🏗️ Architecture technique
-
-### Modules core (noyau relationnel)
-- **UserProfile** : Gestion des préférences et historique utilisateur
-- **ProjectContext** : Maintien du contexte global de chaque projet
-- **SedimentationManager** : Orchestration des flux de données entre modules
-- **FileVerseManager** : Interface avec la plateforme Fileverse
-- **HistoryManager** : Suivi des versions et possibilité de restauration
-
-### Modules fonctionnels
-- **Storyboard** : Structuration narrative avec STORYBOARD ENGINE v1
-- **Rédaction** : Création de contenu avec éditeur Fileverse intégré
-- **Révision** : Amélioration assistée par IA
-- **Finalisation** : Export avancé et publication
-
-### Services d'IA
-- **OpenAI GPT** : Service principal pour génération et analyse
-- **Venice AI** : Service de fallback
-- **Cache intelligent** : Optimisation des performances
-
-## 🎮 Comment utiliser l'application
-
-### 1. 🔐 Authentification
+### 🏗️ Structure modulaire
 ```
-Connectez-vous avec votre compte Google via OAuth2
-Support optionnel pour wallet Web3/MetaMask
+academic-writing-system/
+├── core/                    # Modules fondamentaux
+│   ├── auth_system.py      # Authentification OAuth2 Google
+│   ├── database_layer.py   # Couche d'accès aux données SQLite
+│   ├── adaptive_engine.py  # Moteur d'adaptation utilisateur
+│   ├── integration_layer.py # Orchestration des services
+│   └── project_context.py  # Contexte de projet persistant
+├── modules/                 # Modules fonctionnels
+│   ├── storyboard.py       # Structuration narrative
+│   ├── redaction.py        # Assistance à la rédaction
+│   ├── revision.py         # Révision assistée par IA
+│   ├── finalisation.py     # Export et finalisation
+│   └── visualization/      # Analyse et métriques
+├── services/               # Services externes
+│   └── ai_service.py       # Interface OpenAI/Venice AI
+├── utils/                  # Utilitaires
+│   ├── cache.py            # Système de cache intelligent
+│   ├── validators.py       # Validation des données
+│   └── error_handlers.py   # Gestion d'erreurs robuste
+└── data/                   # Persistance des données
+    ├── academic_writing.db # Base de données SQLite
+    ├── cache/              # Cache des requêtes IA
+    ├── projects/           # Projets utilisateur
+    └── exports/            # Documents exportés
 ```
 
-### 2. 📁 Création de projet
+## 🔄 Workflow de sédimentation en 4 phases
+
+### Phase 1: Storyboard (Structuration)
+- **Engine**: STORYBOARD ENGINE v1 avec pipeline 5 étapes
+- **Fonctionnalités**:
+  - Extraction automatique de thèses depuis texte source
+  - Association de citations contextuelles
+  - Génération de structure narrative cohérente
+  - Prompts d'écriture personnalisés
+- **Sédimentation**: Structure → Contexte projet → Phases suivantes
+
+### Phase 2: Rédaction (Création)
+- **Assistance IA contextuelle** basée sur la sédimentation
+- **Pré-remplissage intelligent** depuis les données de storyboard
+- **Outils intégrés**:
+  - Génération de paragraphes ciblés
+  - Reformulation de passages
+  - Développement d'arguments
+  - Création de transitions
+
+### Phase 3: Révision (Amélioration) 
+- **Analyse de densité qualitative** en temps réel
+- **Métriques automatiques**:
+  - Score de cohérence narrative
+  - Densité argumentative par section
+  - Recommandations d'amélioration
+- **Révision par paragraphe** ou section complète
+
+### Phase 4: Finalisation (Export)
+- **Amélioration ligne par ligne** avec IA
+- **Export multi-format**: Markdown, HTML, LaTeX, PDF
+- **Métriques de qualité** finales
+- **Archivage** avec historique complet
+
+## 🧠 Système de sédimentation progressive
+
+### Principe fondamental
+Chaque module enrichit le contexte global via trois dimensions relationnelles:
+
+1. **Utilisateur ↔ Système**: Apprentissage des préférences et adaptation
+2. **Système ↔ Contenu**: Enrichissement progressif des données entre modules  
+3. **Système ↔ IA**: Optimisation continue des prompts et générations
+
+### Implémentation technique
+```python
+# Exemple de flux de sédimentation
+class SedimentationManager:
+    def transfer_context(self, from_phase: str, to_phase: str, data: dict):
+        """Transfert enrichi entre phases avec conservation du contexte"""
+        enhanced_context = self.enrich_with_user_profile(data)
+        return self.adapt_for_phase(enhanced_context, to_phase)
 ```
-Titre → Description → Type → Style → Discipline
-Le système adapte ses suggestions selon vos choix
+
+## 🔧 Technologies et services
+
+### Stack technique principal  
+- **Frontend**: Streamlit 1.31+ avec interface responsive
+- **Backend**: Python 3.8+ avec architecture modulaire
+- **Base de données**: SQLite avec SQLAlchemy ORM
+- **Cache**: Système de cache intelligent multi-niveaux
+- **Authentification**: OAuth2 Google avec gestion sécurisée des tokens
+
+### Services IA intégrés
+- **OpenAI GPT-4**: Service principal (gpt-4o, gpt-4o-mini)
+- **Venice AI**: Service de fallback et diversification
+- **Cache intelligent**: Optimisation coûts et performances
+- **Validation**: Contrôle qualité automatique des générations
+
+### Algorithmes spécialisés
+
+#### STORYBOARD ENGINE v1
+```python
+# Pipeline de traitement automatique
+def generate_automatic_storyboard(source_text: str) -> dict:
+    steps = [
+        extract_theses_from_text,      # Identification thèses
+        associate_citations,           # Liens citations
+        fuse_and_articulate,          # Fusion logique  
+        propose_section_sequence,      # Enchaînement
+        integrate_narrative_structure  # Structure finale
+    ]
+    return execute_pipeline(steps, source_text)
 ```
 
-### 3. 🔄 Workflow séquentiel
+#### Analyseur de densité qualitative  
+- **Métriques**: Cohérence, densité argumentative, fluidité narrative
+- **Scoring**: Algorithme propriétaire 0-100 par section et global
+- **Recommandations**: Suggestions contextuelles d'amélioration
 
-#### Phase 1 : Storyboard
-- Définissez la structure de votre document
-- Utilisez le STORYBOARD ENGINE v1 pour la génération automatique
-- Créez des sections avec thèses et citations
-- La structure nourrit automatiquement la phase suivante
+## 💻 Installation et configuration technique
 
-#### Phase 2 : Rédaction
-- Chaque section s'ouvre dans l'éditeur Fileverse intégré
-- Pré-remplissage automatique basé sur le storyboard
-- Assistance IA contextuelle pour développer le contenu
-- Synchronisation automatique avec la blockchain
-
-#### Phase 3 : Révision
-- Révision par paragraphe ou section complète
-- Analyse de densité qualitative en temps réel
-- Suggestions d'amélioration automatiques
-- Contrôle qualité multi-critères
-
-#### Phase 4 : Finalisation
-- Amélioration IA ligne par ligne du document complet
-- Export multi-format avec options avancées
-- Publication décentralisée via Fileverse
-
-### 4. 📊 Suivi et analyse
-- Métriques de progression en temps réel
-- Analyse de densité qualitative
-- Historique complet des versions
-- Visualisation de la sédimentation
-
-## 💻 Installation et configuration
-
-### Prérequis
-- Python 3.8 ou supérieur
-- Compte Google (pour l'authentification)
-- Clé API OpenAI
-- Clé API Fileverse (optionnelle mais recommandée)
-
-### Installation
+### Prérequis système
 ```bash
-# Clonage du repository
-git clone https://github.com/votre-repo/academic-writing-system
-cd academic-writing-system
+# Versions minimales requises
+Python >= 3.8
+Streamlit >= 1.31.0
+SQLAlchemy >= 2.0
+OpenAI Python >= 1.0
+```
 
-# Installation des dépendances
+### Configuration complète
+```bash
+# 1. Clonage et installation
+git clone https://github.com/Elma-Landro/academic-writing-system
+cd academic-writing-system
 pip install -r requirements.txt
 
-# Configuration des secrets
+# 2. Configuration secrets
 cp secrets_template.toml secrets.toml
-# Éditez secrets.toml avec vos vraies clés API
-```
+# Éditer avec vos clés API
 
-### Configuration des clés API
-```toml
-[google_oauth]
-client_id = "votre-client-id"
-client_secret = "votre-client-secret"
+# 3. Initialisation base de données
+python -c "from core.database_layer import db_manager; db_manager.init_db()"
 
-[openai]
-api_key = "votre-clé-openai"
-
-[fileverse]
-api_key = "votre-clé-fileverse"  # Optionnel mais recommandé
-```
-
-### Lancement
-```bash
+# 4. Lancement
 streamlit run app.py --server.port 5000 --server.address 0.0.0.0
 ```
 
-L'application sera accessible à l'adresse : `http://localhost:5000`
+### Configuration OAuth2 Google
+```toml
+[google_oauth]
+client_id = "votre-client-id.googleusercontent.com"
+client_secret = "votre-client-secret"
+redirect_uri = "https://votre-app.replit.app/auth/callback"
+```
 
-## 🔧 Fonctionnalités avancées
+### Configuration services IA
+```toml
+[openai]
+api_key = "sk-..."
+default_model = "gpt-4o"
+fallback_model = "gpt-4o-mini"
 
-### 📝 STORYBOARD ENGINE v1
-Pipeline de traitement automatique en 5 étapes :
-1. Identification des thèses depuis un document source
-2. Association de citations marquantes
-3. Fusion et articulation logique des thèses
-4. Proposition d'enchaînement de sections
-5. Intégration dans la structure narrative
+[venice_ai]  # Service de fallback
+api_key = "votre-clé-venice"
+endpoint = "https://api.venice.ai/v1"
+```
 
-### 🎯 Analyse de densité qualitative
-- Score de densité par section et global
-- Recommandations d'amélioration automatiques
-- Analyse par paragraphe en temps réel
-- Métriques de cohérence narrative
+## 📊 Métriques et monitoring
 
-### 🔗 Intégration Web3 (optionnelle)
-- Connexion MetaMask pour authentification décentralisée
-- Stockage IPFS pour documents volumineux
-- Smart contracts pour validation de versions
+### Système de cache intelligent
+- **Hit rate** optimal: >85% pour requêtes récurrentes
+- **TTL adaptatif**: Basé sur le type de contenu et fréquence d'usage
+- **Invalidation**: Automatique lors de modifications contextuelles
 
-### 📊 Tableaux de bord analytiques
-- Progression de sédimentation visuelle
-- Métriques de qualité du contenu
-- Historique des transitions entre phases
-- Statistiques d'utilisation personnalisées
+### Métriques qualité
+```python
+# Exemple de métriques calculées
+quality_metrics = {
+    "coherence_score": 0.87,        # Cohérence narrative
+    "density_score": 0.93,          # Densité argumentative  
+    "section_balance": 0.78,        # Équilibre entre sections
+    "transition_quality": 0.85,     # Qualité des transitions
+    "global_score": 0.86            # Score global pondéré
+}
+```
 
-## 🌟 Cas d'usage
+## 🚀 API et extensibilité
 
-### 👨‍🎓 Pour les étudiants
-- **Mémoires et thèses** : Structure guidée + éditeur Fileverse collaboratif
-- **Articles de recherche** : Méthodologie rigoureuse + versioning blockchain
-- **Rapports de stage** : Templates adaptés + co-édition supervisée
+### Core API
+```python
+from core.integration_layer import IntegrationLayer
 
-### 👨‍🏫 Pour les chercheurs
-- **Publications scientifiques** : Sédimentation IA + traitement de texte décentralisé
-- **Demandes de financement** : Argumentation renforcée + collaboration sécurisée
-- **Rapports de recherche** : Cohérence automatique + historique inviolable
+# Initialisation du système
+integration = IntegrationLayer()
+project = integration.create_project(
+    title="Mon Article",
+    style="CRÉSUS-NAKAMOTO", 
+    discipline="Sciences sociales"
+)
 
-### 🏫 Pour les institutions
-- **Standardisation** : Templates institutionnels + contrôle Fileverse
-- **Collaboration internationale** : Co-rédaction blockchain sécurisée
-- **Archivage pérenne** : Stockage décentralisé + traçabilité complète
+# Génération storyboard
+storyboard = integration.generate_storyboard(
+    project_id=project.id,
+    source_text="Texte de base..."
+)
 
-### 🚀 Spécificités Fileverse
-- **Recherche collaborative** : Équipes mondiales sur documents unifiés
-- **Propriété intellectuelle** : Preuve d'antériorité automatique blockchain
-- **Continuité éditoriale** : Travail hors ligne + sync automatique
-- **Résistance à la censure** : Documents académiques protégés à vie
+# Rédaction assistée
+content = integration.assist_writing(
+    section_id=storyboard.sections[0].id,
+    assistance_type="develop_argument",
+    context="Développer l'argument principal"
+)
+```
 
-## 🔮 Perspectives d'évolution
+### Hooks d'extension
+- **Pre/Post processing**: Hooks personnalisés pour chaque phase
+- **Custom validators**: Validation métier spécialisée  
+- **Export plugins**: Formats d'export additionnels
+- **IA models**: Intégration de nouveaux modèles
 
-### Court terme
-- [ ] Intégration Zotero/Mendeley pour gestion bibliographique
-- [ ] Templates spécialisés par discipline
-- [ ] Collaboration en temps réel multi-utilisateurs
-- [ ] Export PDF natif avec mise en forme avancée
+## 🔍 Cas d'usage techniques
 
-### Moyen terme
-- [ ] Support LaTeX complet avec compilation
-- [ ] Intégration avec plateformes de publication (arXiv, HAL)
-- [ ] IA spécialisée par domaine académique
-- [ ] Mobile app pour révision nomade
+### Recherche académique
+```python
+# Configuration optimisée pour publication scientifique
+config = {
+    "style": "Académique",
+    "citation_format": "APA",
+    "structure_type": "IMRAD",
+    "quality_threshold": 0.90,
+    "ai_model": "gpt-4o"
+}
+```
 
-### Long terme
-- [ ] Marketplace de templates communautaires
-- [ ] Blockchain native pour certification de plagiat
-- [ ] IA collaborative entre chercheurs
-- [ ] Métaverse académique intégré
+### Mémoires et thèses  
+```python
+# Workflow long document avec sédimentation avancée
+workflow = LongDocumentWorkflow(
+    chapters=True,
+    cross_references=True,
+    bibliography_integration=True,
+    progressive_revision=True
+)
+```
 
-## 🤝 Contribution et communauté
+## 📈 Performance et scalabilité
 
-### Comment contribuer
-1. **Fork** le repository
-2. **Créez** une branche pour votre fonctionnalité
-3. **Committez** vos changements
-4. **Soumettez** une Pull Request
+### Optimisations implémentées
+- **Lazy loading**: Chargement progressif des modules lourds
+- **Request batching**: Groupement des appels IA pour efficacité
+- **Context pruning**: Élagage intelligent du contexte pour limites tokens
+- **Async processing**: Traitement asynchrone des tâches longues
 
-### Guidelines de développement
-- Code Python 3.8+ avec type hints
-- Tests unitaires obligatoires pour nouvelles fonctionnalités
-- Documentation complète des APIs
-- Respect des principes de sédimentation
+### Limites techniques actuelles
+- **Max tokens**: 4000 tokens par requête IA (sécurité)
+- **Cache size**: 500MB par utilisateur (limite mémoire)
+- **Concurrent users**: 50 utilisateurs simultanés optimaux
+- **Project size**: 100 sections max par projet
 
-## 📄 Licence et remerciements
+## 🔮 Roadmap technique
 
-### Licence
-Ce projet est sous licence GPL v3. Voir le fichier LICENSE pour plus de détails.
+### Version 2.0 (Q2 2024)
+- [ ] Support LaTeX natif avec compilation
+- [ ] API REST complète pour intégrations tierces  
+- [ ] Système de plugins pour extensions custom
+- [ ] Multi-modèles IA simultanés avec vote majoritaire
 
-### Remerciements
-- **Fileverse** pour la plateforme de traitement de texte décentralisée
-- **OpenAI** pour les services d'intelligence artificielle
-- **Streamlit** pour le framework d'interface utilisateur
-- **Méthodologie Michelat** pour l'inspiration du workflow
-- **Communauté académique** pour les retours et suggestions
+### Version 3.0 (Q4 2024)  
+- [ ] Architecture microservices avec Docker
+- [ ] Base de données PostgreSQL distribuée
+- [ ] Intégration Zotero/Mendeley native
+- [ ] Collaboration temps réel multi-utilisateurs
 
-## 🆘 Support et documentation
+## 🤝 Contribution technique
 
-### Documentation complète
-- [Guide utilisateur détaillé](docs/user-guide.md)
-- [Documentation API](docs/api-reference.md)
-- [Guide d'intégration Fileverse](docs/fileverse-integration.md)
-- [Tutoriels vidéo](docs/video-tutorials.md)
+### Guidelines développement
+```python
+# Standards de code requis
+from typing import Dict, List, Optional, Any
+import logging
 
-### Support
-- **Issues GitHub** : Pour bugs et demandes de fonctionnalités
-- **Discussions** : Pour questions générales et partage d'expériences
-- **Email** : support@academic-writing-system.com
+class NewModule:
+    """Documentation complète requise."""
+    
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.logger = logging.getLogger(__name__)
+        
+    def process_data(self, data: List[str]) -> Optional[Dict]:
+        """Type hints obligatoires pour toutes méthodes."""
+        pass
+```
+
+### Tests et validation
+- **Coverage minimum**: 80% pour nouveaux modules
+- **Integration tests**: Obligatoires pour flux complets
+- **Performance tests**: Benchmarks pour composants critiques
+- **Security audit**: Validation sécurité pour authentification
+
+## 📄 Licences et attributions
+
+### Licence principale
+**GPL v3** - Voir LICENSE pour détails complets
+
+### Dépendances principales
+- **Streamlit**: Apache 2.0
+- **OpenAI Python**: MIT  
+- **SQLAlchemy**: MIT
+- **Python standard library**: PSF
 
 ---
 
-**🚀 Révolutionnez votre processus de rédaction académique avec la puissance de l'IA et la sécurité de la blockchain !**
+## 🆘 Support technique
+
+### Documentation développeur
+- [API Reference](docs/api-reference.md)
+- [Architecture Guide](docs/architecture.md)  
+- [Extension Development](docs/extensions.md)
+- [Deployment Guide](docs/deployment.md)
+
+### Debugging et logs
+```bash
+# Activation logs détaillés
+export ACADEMIC_WRITING_DEBUG=true
+export ACADEMIC_WRITING_LOG_LEVEL=DEBUG
+streamlit run app.py
+```
+
+**🚀 Système de rédaction académique avec IA - Architecture robuste et extensible**
