@@ -49,9 +49,8 @@ def call_ai_safe(prompt: str,
     try:
         # Tentative avec OpenAI
         try:
-            # Initialisation simple du client OpenAI
-            client = OpenAI()
-            client.api_key = api_key
+            # Initialisation correcte du client OpenAI
+            client = OpenAI(api_key=api_key)
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],

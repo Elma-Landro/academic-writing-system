@@ -5,10 +5,19 @@ channel = "stable-24_05"
 packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "qhull", "tcl", "tk", "zlib"]
 
 [workflows]
-runButton = "Streamlit App"
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Streamlit App"
+author = 44225636
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run app.py --server.port 5000 --server.address 0.0.0.0"
+
+[[workflows.workflow]]
+name = "Run"
 author = 44225636
 mode = "sequential"
 
