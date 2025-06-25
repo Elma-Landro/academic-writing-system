@@ -76,11 +76,11 @@ class GoogleAuthManager:
     
     def get_authorization_url(self) -> Optional[str]:
         """Génère l'URL d'autorisation."""
-        flow = self.create_oauth_flow()
-        if not flow:
-            return None
-            
         try:
+            flow = self.create_oauth_flow()
+            if not flow:
+                return None
+            
             auth_url, state = flow.authorization_url(
                 access_type='offline',
                 include_granted_scopes='true',
@@ -89,6 +89,7 @@ class GoogleAuthManager:
             
             # Stocker l'état pour validation
             st.session_state.oauth_state = state
+            self.logger.info("URL d'autorisation générée avec succès")
             return auth_url
             
         except Exception as e:
@@ -287,23 +288,28 @@ def logout():
 def login_button():
     """Affiche le bouton de connexion."""
     if not auth_manager.is_authenticated():
-        auth_url = auth_manager.get_authorization_url()
-        if auth_url:
-            st.markdown(f"""
-            <a href="{auth_url}" target="_self">
-                <button style="
-                    background-color: #4285f4;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 16px;
-                    width: 100%;
-                ">
-                    🔐 Se connecter avec Google
-                </button>
-            </a>
-            """, unsafe_allow_html=True)
-        else:
-            st.error("Impossible de générer l'URL de connexion. Vérifiez la configuration.")
+        try:
+            auth_url = auth_manager.get_authorization_url()
+            if auth_url:
+                st.markdown(f"""
+                <a href="{auth_url}" target="_self">
+                    <button style="
+                        background-color: #4285f4;
+                        color: white;
+                        padding: 10px 20px;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        width: 100%;
+                    ">
+                        🔐 Se connecter avec Google
+                    </button>
+                </a>
+                """, unsafe_allow_html=True)
+            else:
+                st.error("Impossible de générer l'URL de connexion. Vérifiez la configuration.")
+                st.info("Assurez-vous que GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont configurés dans les secrets.")
+        except Exception as e:
+            st.error(f"Erreur lors de la création du bouton de connexion: {e}")
+            st.info("Vérifiez la configuration Google OAuth dans les secrets Replit.")

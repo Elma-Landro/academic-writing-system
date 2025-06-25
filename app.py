@@ -582,3 +582,13 @@ if __name__ == "__main__":
     # Authentification
     if not auth_manager.is_authenticated():
         render_login_page()
+
+def handle_oauth_callback(code: str, state: Optional[str]) -> bool:
+    """Handles the OAuth callback from Google."""
+    try:
+        # Assuming auth_manager has a method to handle the callback
+        return auth_manager.process_google_oauth_callback(code, state)
+    except Exception as e:
+        st.error(f"OAuth callback error: {e}")
+        logger.error(f"OAuth callback error: {e}")
+        return False
