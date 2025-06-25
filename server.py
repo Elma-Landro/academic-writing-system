@@ -25,27 +25,16 @@ class CustomHandler(SimpleHTTPRequestHandler):
 def start_streamlit():
     """Start Streamlit app in background."""
     time.sleep(2)  # Wait for main server to start
-    subprocess.run(['streamlit', 'run', 'app.py', '--server.port', '5000', '--server.address', '0.0.0.0'])
+    subprocess.run(['streamlit', 'run', 'app.py', '--server.port', '5000', '--server.address', '0.0.0.0', '--server.headless', 'true'])
 
 def main():
-    """Start both servers."""
+    """Start Streamlit server only."""
     print("🚀 Starting Academic Writing System...")
-
-    # Start Streamlit in background thread
-    streamlit_thread = threading.Thread(target=start_streamlit, daemon=True)
-    streamlit_thread.start()
-
-    # Start main HTTP server
-    server = HTTPServer(('0.0.0.0', 8080), CustomHandler)
-    print("📝 Landing page: http://localhost:8080")
     print("🎯 Streamlit app: http://localhost:5000")
     print("✅ System ready!")
 
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print("\n🛑 Shutting down servers...")
-        server.shutdown()
+    # Start Streamlit directly
+    subprocess.run(['streamlit', 'run', 'app.py', '--server.port', '5000', '--server.address', '0.0.0.0', '--server.headless', 'true'])
 
 if __name__ == "__main__":
     main()
