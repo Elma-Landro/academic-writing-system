@@ -193,10 +193,26 @@ class AuthenticationManager:
             return user
     
     def _verify_wallet_signature(self, wallet_address: str, signature: str) -> bool:
-        """Verify wallet signature (simplified implementation)."""
-        # In a real implementation, you would verify the signature against a challenge
-        # For demo purposes, we'll just check that both values are provided
-        return bool(wallet_address and signature and len(wallet_address) == 42)
+        """Verify wallet signature with real cryptographic verification."""
+        try:
+            from eth_account.messages import encode_defunct
+            from eth_account import Account
+            
+            # Generate a challenge message
+            challenge_message = f"Authenticate to Academic Writing System\nWallet: {wallet_address}\nTimestamp: {datetime.utcnow().isoformat()}"
+            
+            # Encode the message
+            encoded_message = encode_defunct(text=challenge_message)
+            
+            # Recover the address from the signature
+            recovered_address = Account.recover_message(encoded_message, signature=signature)
+            
+            # Verify the recovered address matches the provided address
+            return recovered_address.lower() == wallet_address.lower()
+            
+        except Exception as e:
+            logger.error(f"Wallet signature verification failed: {e}")
+            return False
     
     def generate_jwt_token(self, user_id: str) -> str:
         """Generate JWT token for API access."""

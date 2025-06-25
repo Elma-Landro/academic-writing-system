@@ -38,3 +38,7 @@ tzlocal==5.2
 six==1.16.0
 validators==0.34.0
 watchdog==5.0.3
+eth-account
+web3
+eth-account
+web3
