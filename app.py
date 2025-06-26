@@ -571,33 +571,6 @@ def main():
         st.error(f"Application error: {e}")
         logger.error(f"Main application error: {e}")
 
-if __name__ == "__main__":
-    """Application principale avec gestion d'état professionnel."""
-
-    # Configuration de la page
-    #configure_page()
-
-    # Initialisation du style CSS
-    #inject_custom_css()
-
-    # Vérification du service IA
-    if ai_service is None:
-        st.warning("⚠️ Service IA non disponible. Certaines fonctionnalités seront limitées.")
-
-    # Initialisation des gestionnaires
-    #sedimentation_manager = SedimentationManager()
-    #fileverse_manager = FileVerseManager()
-
-    # Handle OAuth callback
-    query_params = st.experimental_get_query_params()
-    if 'code' in query_params:
-        handle_oauth_callback()
-        return
-    
-    # Authentification
-    if not auth_manager.is_authenticated():
-        render_login_page()
-
 def handle_oauth_callback():
     """Handle OAuth callback from Google."""
     import streamlit as st
@@ -611,7 +584,6 @@ def handle_oauth_callback():
         state = query_params.get('state', [None])[0]
         
         # Process the callback
-        from auth_manager import auth_manager
         success = auth_manager.handle_oauth_callback(code, state)
         
         if success:
@@ -619,5 +591,8 @@ def handle_oauth_callback():
             st.experimental_rerun()
         else:
             st.error("Erreur d'authentification")
+
+if __name__ == "__main__":
+    main()
     
     
