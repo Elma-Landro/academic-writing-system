@@ -16,7 +16,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email'
 ]
 
-REDIRECT_URI = "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
+REDIRECT_URI = "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
 
 class GoogleAuthManager:
     """Gestionnaire d'authentification Google robuste avec gestion d'erreurs complète."""
@@ -55,8 +55,8 @@ class GoogleAuthManager:
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "redirect_uris": [
-                        "https://ing-system-mael-rolland.streamlit.app/oauth2callback",
-                        "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
+                        "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback",
+                        "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
                     ]
                 }
             }
@@ -273,8 +273,8 @@ class GoogleAuthManager:
 
     def get_redirect_uri(self):
         """Obtient l'URI de redirection basée sur l'environnement."""
-        # Toujours utiliser l'URL Streamlit déployée
-        return "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
+        # Utiliser l'URL actuelle du déploiement
+        return "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
 
     def is_replit_environment(self) -> bool:
         """Vérifie si l'environnement est Replit."""

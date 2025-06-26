@@ -407,16 +407,13 @@ def handle_oauth_callback():
             state = state[0] if len(state) > 0 else None
 
         try:
-            # Import the auth manager from auth_manager.py
-            from auth_manager import auth_manager as google_auth
-            
-            # Process the callback
-            success = google_auth.handle_oauth_callback(code, state)
+            # Use the imported auth_manager
+            success = auth_manager.handle_oauth_callback(code, state)
 
             if success:
                 st.success("Authentification réussie!")
                 st.session_state.is_authenticated = True
-                st.session_state.user_info = google_auth.get_current_user()
+                st.session_state.user_info = auth_manager.get_current_user()
                 # Clear URL parameters
                 st.query_params.clear()
                 st.rerun()
@@ -456,8 +453,28 @@ def main():
             st.write("Login with your Google account for full features:")
 
             try:
-                from auth_manager import login_button
-                login_button()
+                # Use the global auth_manager instance
+                auth_url = auth_manager.get_authorization_url()
+                if auth_url:
+                    st.markdown(f"""
+                    <a href="{auth_url}" target="_self">
+                        <button style="
+                            background-color: #4285f4;
+                            color: white;
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 16px;
+                            width: 100%;
+                        ">
+                            🔐 Se connecter avec Google
+                        </button>
+                    </a>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.error("Impossible de générer l'URL de connexion")
+                    st.info("Vérifiez que GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont configurés")
             except Exception as e:
                 st.error(f"Erreur de configuration Google OAuth: {e}")
                 st.info("Assurez-vous que GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont configurés dans les secrets.")
