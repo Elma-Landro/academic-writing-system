@@ -18,18 +18,8 @@ SCOPES = [
 
 def get_replit_redirect_uri():
     """Get the correct Replit redirect URI."""
-    replit_slug = os.getenv('REPL_SLUG')
-    replit_owner = os.getenv('REPL_OWNER')
-    
-    if replit_slug and replit_owner:
-        return f"https://{replit_slug}-{replit_owner}.replit.app/oauth2callback"
-    
-    # Fallback
-    replit_dev_domain = os.getenv('REPLIT_DEV_DOMAIN')
-    if replit_dev_domain:
-        return f"https://{replit_dev_domain}/oauth2callback"
-    
-    return "https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev/oauth2callback"
+    # Utiliser l'URL stable Replit
+    return "https://workspace-landroelma.replit.app/oauth2callback"
 
 REDIRECT_URI = get_replit_redirect_uri()
 
