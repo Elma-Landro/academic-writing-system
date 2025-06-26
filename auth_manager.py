@@ -33,17 +33,20 @@ class GoogleAuthManager:
     def _get_client_config(self) -> Dict[str, Any]:
         """Récupère la configuration client depuis les secrets."""
         try:
-            # Essayer d'abord les secrets Streamlit (pour compatibilité)
-            if hasattr(st, 'secrets') and 'google' in st.secrets:
-                client_id = st.secrets["google"]["client_id"]
-                client_secret = st.secrets["google"]["client_secret"]
-            else:
-                # Utiliser les variables d'environnement (secrets Replit)
-                client_id = os.getenv("GOOGLE_CLIENT_ID")
-                client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+            # Utiliser directement les variables d'environnement (secrets Replit)
+            client_id = os.getenv("GOOGLE_CLIENT_ID")
+            client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
 
-                if not client_id or not client_secret:
-                    raise ValueError("Google OAuth credentials not found")
+            # Si pas trouvé, essayer les secrets Streamlit
+            if not client_id and hasattr(st, 'secrets'):
+                try:
+                    client_id = st.secrets.get("GOOGLE_CLIENT_ID") or st.secrets["google"]["client_id"]
+                    client_secret = st.secrets.get("GOOGLE_CLIENT_SECRET") or st.secrets["google"]["client_secret"]
+                except (KeyError, AttributeError):
+                    pass
+
+            if not client_id or not client_secret:
+                raise ValueError("Google OAuth credentials not found")
 
             return {
                 "web": {
