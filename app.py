@@ -406,16 +406,25 @@ def handle_oauth_callback():
         if state and not isinstance(state, str):
             state = state[0] if len(state) > 0 else None
 
-        # Process the callback
-        success = auth_manager.handle_oauth_callback(code, state)
+        try:
+            # Import the auth manager from auth_manager.py
+            from auth_manager import auth_manager as google_auth
+            
+            # Process the callback
+            success = google_auth.handle_oauth_callback(code, state)
 
-        if success:
-            st.success("Authentification réussie!")
-            # Clear URL parameters
-            st.query_params.clear()
-            st.rerun()
-        else:
-            st.error("Erreur d'authentification")
+            if success:
+                st.success("Authentification réussie!")
+                st.session_state.is_authenticated = True
+                st.session_state.user_info = google_auth.get_current_user()
+                # Clear URL parameters
+                st.query_params.clear()
+                st.rerun()
+            else:
+                st.error("Erreur d'authentification")
+                st.query_params.clear()
+        except Exception as e:
+            st.error(f"Erreur lors du callback: {e}")
             st.query_params.clear()
 
 def main():
@@ -431,51 +440,47 @@ def main():
         render_sidebar(user)
 
         # Route to appropriate page
-        if not user:
+        if not user and not st.session_state.get('is_authenticated', False):
             # === INTERFACE D'AUTHENTIFICATION ===
-            if not st.session_state.get('is_authenticated', False):
-                st.title("🔐 Academic Writing System - Login")
+            st.title("🔐 Academic Writing System - Login")
 
-                # Section Google Account
-                st.subheader("Google Account")
-                st.write("Login with your Google account for full features:")
-
-                # Vérification si on a des paramètres d'URL (retour OAuth)
-                query_params = st.query_params
-                if 'code' in query_params:
-                    st.info("Traitement de l'authentification en cours...")
-                    handle_oauth_callback()
-
-                # Rendu du système d'authentification
-                try:
-                    auth_manager.render_google_login()
-                except Exception as e:
-                    st.error(f"Erreur d'authentification: {e}")
-                    logger.error(f"Authentication error: {e}")
-
-                # Section Web3 Wallet
-                st.subheader("Web3 Wallet")
-                st.write("Connect your crypto wallet:")
-
-                wallet_address = st.text_input("Wallet Address", key="wallet_input")
-                signature = st.text_input("Signature", type="password", key="signature_input")
-
-                if st.button("Connect Wallet", key="connect_wallet"):
-                    if wallet_address and signature:
-                        # Validation basique (à améliorer)
-                        st.session_state.wallet_address = wallet_address
-                        st.session_state.wallet_signature = signature
-                        st.session_state.web3_authenticated = True
-                        st.session_state.is_authenticated = True
-                        st.success("Web3 wallet connected!")
-                        st.rerun()
-                    else:
-                        st.error("Please provide both wallet address and signature")
-
-                # Si aucune authentification
-                if not st.session_state.get('web3_authenticated', False):
-                    st.info("Please authenticate using Google Account or Web3 Wallet to access the system.")
+            # Vérification si on a des paramètres d'URL (retour OAuth)
+            query_params = st.query_params
+            if 'code' in query_params:
+                st.info("Traitement de l'authentification en cours...")
+                handle_oauth_callback()
                 return
+
+            # Section Google Account
+            st.subheader("Google Account")
+            st.write("Login with your Google account for full features:")
+
+            try:
+                from auth_manager import login_button
+                login_button()
+            except Exception as e:
+                st.error(f"Erreur de configuration Google OAuth: {e}")
+                st.info("Assurez-vous que GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont configurés dans les secrets.")
+
+            # Section Web3 Wallet
+            st.markdown("---")
+            st.subheader("Web3 Wallet")
+            st.write("Connect your crypto wallet:")
+
+            wallet_address = st.text_input("Wallet Address", key="wallet_input")
+            signature = st.text_input("Signature", type="password", key="signature_input")
+
+            if st.button("Connect Wallet", key="connect_wallet"):
+                if wallet_address and signature:
+                    st.session_state.wallet_address = wallet_address
+                    st.session_state.wallet_signature = signature
+                    st.session_state.is_authenticated = True
+                    st.success("Web3 wallet connected!")
+                    st.rerun()
+                else:
+                    st.error("Please provide both wallet address and signature")
+
+            return
 
         page = st.session_state.get('page', 'home')
 

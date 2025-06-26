@@ -56,7 +56,7 @@ class GoogleAuthManager:
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "redirect_uris": [
                         "https://ing-system-mael-rolland.streamlit.app/oauth2callback",
-                        "http://localhost:5000/oauth2callback"
+                        "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
                     ]
                 }
             }
@@ -273,11 +273,8 @@ class GoogleAuthManager:
 
     def get_redirect_uri(self):
         """Obtient l'URI de redirection basée sur l'environnement."""
-        if self.is_replit_environment():
-            # Utilise l'URL Streamlit App
-            return "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
-        else:
-            return "http://localhost:5000/oauth2callback"
+        # Toujours utiliser l'URL Streamlit déployée
+        return "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
 
     def is_replit_environment(self) -> bool:
         """Vérifie si l'environnement est Replit."""

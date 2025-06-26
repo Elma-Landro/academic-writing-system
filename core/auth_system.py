@@ -233,24 +233,12 @@ class AuthenticationManager:
     def _get_redirect_uri(self) -> str:
         """Détecte automatiquement l'URL de redirection appropriée."""
         try:
-            # Vérifier si on est sur Replit
-            replit_dev_domain = os.getenv('REPLIT_DEV_DOMAIN')
-            if replit_dev_domain:
-                return f"https://{replit_dev_domain}/oauth2callback"
-
-            # Fallback pour Streamlit Cloud
-            import socket
-            hostname = socket.getfqdn()
-
-            if 'streamlit.app' in hostname:
-                return "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
-            else:
-                # Fallback pour développement local
-                return "http://localhost:5000/oauth2callback"
+            # Pour Streamlit, toujours utiliser l'URL déployée
+            return "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
         except Exception as e:
             logger.warning(f"Failed to detect hostname: {e}")
-            # Fallback par défaut - utiliser l'URL Replit actuelle
-            return "https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev/oauth2callback"
+            # Fallback vers l'URL Streamlit
+            return "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
 
     def render_google_login(self):
         """Render Google login component."""
