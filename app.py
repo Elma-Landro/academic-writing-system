@@ -467,6 +467,23 @@ def main():
         # Initialize application
         adaptive_engine, integration_layer, system_status = initialize_app()
 
+        # Handle OAuth callback first
+        query_params = st.query_params
+        if 'code' in query_params:
+            st.info("🔄 Processing Google authentication...")
+            code = query_params.get('code')
+            state = query_params.get('state')
+            
+            if auth_manager.handle_oauth_callback(code, state):
+                st.success("✅ Authentication successful! Redirecting...")
+                # Clear URL parameters
+                st.query_params.clear()
+                st.rerun()
+            else:
+                st.error("❌ Authentication failed. Please try again.")
+                st.query_params.clear()
+                st.rerun()
+
         # Check authentication
         user = auth_manager.get_current_user()
 
@@ -482,11 +499,6 @@ def main():
                 # Section Google Account
                 st.subheader("Google Account")
                 st.write("Login with your Google account for full features:")
-
-                # Vérification si on a des paramètres d'URL (retour OAuth)
-                query_params = st.query_params
-                if 'code' in query_params:
-                    st.info("Traitement de l'authentification en cours...")
 
                 # Rendu du système d'authentification
                 try:

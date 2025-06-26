@@ -234,6 +234,13 @@ class AuthenticationManager:
         """Détecte automatiquement l'URL de redirection appropriée."""
         try:
             # Vérifier si on est sur Replit
+            replit_slug = os.getenv('REPL_SLUG')
+            replit_owner = os.getenv('REPL_OWNER')
+            
+            if replit_slug and replit_owner:
+                return f"https://{replit_slug}-{replit_owner}.replit.app/oauth2callback"
+            
+            # Fallback avec REPLIT_DEV_DOMAIN
             replit_dev_domain = os.getenv('REPLIT_DEV_DOMAIN')
             if replit_dev_domain:
                 return f"https://{replit_dev_domain}/oauth2callback"
@@ -246,7 +253,7 @@ class AuthenticationManager:
                 return "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
             else:
                 # Fallback pour développement local
-                return "http://localhost:5000/oauth2callback"
+                return "http://0.0.0.0:5000/oauth2callback"
         except Exception as e:
             logger.warning(f"Failed to detect hostname: {e}")
             # Fallback par défaut - utiliser l'URL Replit actuelle
@@ -281,6 +288,42 @@ class AuthenticationManager:
         except Exception as e:
             logger.error(f"Google auth render error: {e}")
             st.error(f"Login failed: {e}")
+            return False
+
+    def handle_oauth_callback(self, code: str, state: str = None) -> bool:
+        """Handle OAuth callback from Google."""
+        try:
+            if not self.google_oauth:
+                logger.error("Google OAuth not configured")
+                return False
+
+            # Exchange code for token
+            token = self.google_oauth.fetch_token(
+                code=code,
+                redirect_uri=self.redirect_uri
+            )
+
+            if token and 'access_token' in token:
+                # Get user info
+                user_info = self._get_google_user_info(token['access_token'])
+                
+                if user_info:
+                    # Create or update user
+                    user = self._handle_google_user(user_info)
+                    
+                    # Set session
+                    st.session_state.user_id = user.id
+                    st.session_state.user_email = user.email
+                    st.session_state.user_name = user.display_name
+                    
+                    logger.info(f"OAuth callback successful for user: {user.email}")
+                    return True
+
+            logger.error("Failed to exchange code for token")
+            return False
+
+        except Exception as e:
+            logger.error(f"OAuth callback error: {e}")
             return False
 
 # Global authentication manager
