@@ -121,15 +121,7 @@ class AIServicePool:
     """Pool of AI service connections with load balancing."""
 
     def __init__(self):
-        # Configuration depuis les secrets (Replit env vars)
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        self.venice_api_key = os.getenv('VENICE_API_KEY')
-
-        # Fallback vers secrets Streamlit si disponible
-        #if not self.openai_api_key and hasattr(st, 'secrets'):  # Removed streamlit dependency
-        #    self.openai_api_key = st.secrets.get('OPENAI_API_KEY')
-        #if not self.venice_api_key and hasattr(st, 'secrets'):  # Removed streamlit dependency
-        #    self.venice_api_key = st.secrets.get('VENICE_API_KEY')
         self.openai_client = None
         self.context_manager = ContextManager()
         self.request_queue = asyncio.Queue()
@@ -308,13 +300,13 @@ class ProfessionalAIService:
 
             # Process request
             response = await self.service_pool.process_request(request)
-
+            
             # Log for monitoring
             if response.error is None:
                 logger.info(f"AI request processed for user {user_id}: {response.tokens_used} tokens, ${response.cost_estimate:.4f}")
-
+            
             return response
-
+            
         except Exception as e:
             logger.error(f"Unexpected error in generate_content: {e}")
             return AIResponse(

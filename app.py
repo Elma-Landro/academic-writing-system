@@ -395,34 +395,71 @@ def render_profile_page(user):
             except Exception as e:
                 st.error(f"Failed to save preferences: {e}")
 
-def handle_oauth_callback():
-    """Handle OAuth callback from Google."""
-    # Get query parameters
-    query_params = st.query_params
+def render_main_navigation():
+    """Render the main navigation interface."""
+    st.title("🎓 Academic Writing System")
+    st.subheader("Système de rédaction académique avec IA générative")
 
-    if 'code' in query_params:
-        code = query_params['code'] if isinstance(query_params['code'], str) else query_params['code'][0]
-        state = query_params.get('state')
-        if state and not isinstance(state, str):
-            state = state[0] if len(state) > 0 else None
+    # Project selection
+    current_user = st.session_state.get('current_user')
+    if current_user:
+        projects = db_manager.get_user_projects(current_user.id) #project_context.get_all_projects()
 
-        try:
-            # Use the imported auth_manager
-            success = auth_manager.handle_oauth_callback(code, state)
+        if projects:
+            project_options = {f"{p.title} ({p.id})": p.id
+                             for p in projects}
+            selected_project = st.selectbox(
+                "Sélectionner un projet",
+                options=list(project_options.keys()),
+                key="project_selector"
+            )
 
-            if success:
-                st.success("Authentification réussie!")
-                st.session_state.is_authenticated = True
-                st.session_state.user_info = auth_manager.get_current_user()
-                # Clear URL parameters
-                st.query_params.clear()
+            if selected_project:
+                project_id = project_options[selected_project]
+                st.session_state.project_id = project_id
+
+        # Navigation buttons - 4 étapes principales + Web3
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            if st.button("🎯 Storyboard IA", key="nav_storyboard"):
+                st.session_state.page = "storyboard"
                 st.rerun()
-            else:
-                st.error("Erreur d'authentification")
-                st.query_params.clear()
-        except Exception as e:
-            st.error(f"Erreur lors du callback: {e}")
-            st.query_params.clear()
+
+        with col2:
+            if st.button("✍️ Rédaction", key="nav_redaction"):
+                st.session_state.page = "redaction"
+                st.rerun()
+
+        with col3:
+            if st.button("🔍 Révision", key="nav_revision"):
+                st.session_state.page = "revision"
+                st.rerun()
+
+        with col4:
+            if st.button("📄 Finalisation", key="nav_finalisation"):
+                st.session_state.page = "finalisation"
+                st.rerun()
+
+        # Section Web3 séparée
+        st.markdown("---")
+        col_web3, col_settings = st.columns(2)
+
+        with col_web3:
+            if st.button("🔗 Authentification Web3", key="nav_web3"):
+                st.session_state.page = "web3"
+                st.rerun()
+
+        with col_settings:
+            if st.button("⚙️ Paramètres", key="nav_settings"):
+                st.session_state.page = "settings"
+                st.rerun()
+
+def initialize_web3_session():
+    st.write("Initializing Web3 Session (Placeholder)")
+
+def render_web3_auth_interface():
+    st.write("Web3 Authentication Interface (Placeholder)")
 
 def main():
     """Main application entry point."""
@@ -437,67 +474,50 @@ def main():
         render_sidebar(user)
 
         # Route to appropriate page
-        if not user and not st.session_state.get('is_authenticated', False):
+        if not user:
             # === INTERFACE D'AUTHENTIFICATION ===
-            st.title("🔐 Academic Writing System - Login")
+            if not st.session_state.get('is_authenticated', False):
+                st.title("🔐 Academic Writing System - Login")
 
-            # Vérification si on a des paramètres d'URL (retour OAuth)
-            query_params = st.query_params
-            if 'code' in query_params:
-                st.info("Traitement de l'authentification en cours...")
-                handle_oauth_callback()
+                # Section Google Account
+                st.subheader("Google Account")
+                st.write("Login with your Google account for full features:")
+
+                # Vérification si on a des paramètres d'URL (retour OAuth)
+                query_params = st.query_params
+                if 'code' in query_params:
+                    st.info("Traitement de l'authentification en cours...")
+
+                # Rendu du système d'authentification
+                try:
+                    auth_manager.render_google_login()
+                except Exception as e:
+                    st.error(f"Erreur d'authentification: {e}")
+                    logger.error(f"Authentication error: {e}")
+
+                # Section Web3 Wallet
+                st.subheader("Web3 Wallet")
+                st.write("Connect your crypto wallet:")
+
+                wallet_address = st.text_input("Wallet Address", key="wallet_input")
+                signature = st.text_input("Signature", type="password", key="signature_input")
+
+                if st.button("Connect Wallet", key="connect_wallet"):
+                    if wallet_address and signature:
+                        # Validation basique (à améliorer)
+                        st.session_state.wallet_address = wallet_address
+                        st.session_state.wallet_signature = signature
+                        st.session_state.web3_authenticated = True
+                        st.session_state.is_authenticated = True
+                        st.success("Web3 wallet connected!")
+                        st.rerun()
+                    else:
+                        st.error("Please provide both wallet address and signature")
+
+                # Si aucune authentification
+                if not st.session_state.get('web3_authenticated', False):
+                    st.info("Please authenticate using Google Account or Web3 Wallet to access the system.")
                 return
-
-            # Section Google Account
-            st.subheader("Google Account")
-            st.write("Login with your Google account for full features:")
-
-            try:
-                # Use the global auth_manager instance
-                auth_url = auth_manager.get_authorization_url()
-                if auth_url:
-                    st.markdown(f"""
-                    <a href="{auth_url}" target="_self">
-                        <button style="
-                            background-color: #4285f4;
-                            color: white;
-                            padding: 10px 20px;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 16px;
-                            width: 100%;
-                        ">
-                            🔐 Se connecter avec Google
-                        </button>
-                    </a>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.error("Impossible de générer l'URL de connexion")
-                    st.info("Vérifiez que GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont configurés")
-            except Exception as e:
-                st.error(f"Erreur de configuration Google OAuth: {e}")
-                st.info("Assurez-vous que GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont configurés dans les secrets.")
-
-            # Section Web3 Wallet
-            st.markdown("---")
-            st.subheader("Web3 Wallet")
-            st.write("Connect your crypto wallet:")
-
-            wallet_address = st.text_input("Wallet Address", key="wallet_input")
-            signature = st.text_input("Signature", type="password", key="signature_input")
-
-            if st.button("Connect Wallet", key="connect_wallet"):
-                if wallet_address and signature:
-                    st.session_state.wallet_address = wallet_address
-                    st.session_state.wallet_signature = signature
-                    st.session_state.is_authenticated = True
-                    st.success("Web3 wallet connected!")
-                    st.rerun()
-                else:
-                    st.error("Please provide both wallet address and signature")
-
-            return
 
         page = st.session_state.get('page', 'home')
 
@@ -552,4 +572,32 @@ def main():
         logger.error(f"Main application error: {e}")
 
 if __name__ == "__main__":
-    main()
+    """Application principale avec gestion d'état professionnel."""
+
+    # Configuration de la page
+    #configure_page()
+
+    # Initialisation du style CSS
+    #inject_custom_css()
+
+    # Vérification du service IA
+    if ai_service is None:
+        st.warning("⚠️ Service IA non disponible. Certaines fonctionnalités seront limitées.")
+
+    # Initialisation des gestionnaires
+    #sedimentation_manager = SedimentationManager()
+    #fileverse_manager = FileVerseManager()
+
+    # Authentification
+    if not auth_manager.is_authenticated():
+        render_login_page()
+
+def handle_oauth_callback(code: str, state: Optional[str]) -> bool:
+    """Handles the OAuth callback from Google."""
+    try:
+        # Assuming auth_manager has a method to handle the callback
+        return auth_manager.process_google_oauth_callback(code, state)
+    except Exception as e:
+        st.error(f"OAuth callback error: {e}")
+        logger.error(f"OAuth callback error: {e}")
+        return False

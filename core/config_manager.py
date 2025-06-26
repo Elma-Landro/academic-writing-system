@@ -111,36 +111,24 @@ class ConfigurationManager:
     
     def _get_secret(self, env_var: str, secrets_key: str, default: str = None) -> Optional[str]:
         """Get secret from environment variable or Streamlit secrets."""
-        # Try environment variable first (Replit secrets are available as env vars)
+        # Try environment variable first
         value = os.getenv(env_var)
-        if value:
-            return value
-        
-        # Try direct env var without prefix for Replit compatibility
-        if env_var.startswith('GOOGLE_'):
-            alt_var = env_var
-        else:
-            alt_var = secrets_key
-        
-        value = os.getenv(alt_var)
         if value:
             return value
         
         # Try Streamlit secrets (direct key access)
         try:
-            if hasattr(st, 'secrets'):
-                return str(st.secrets[secrets_key])
+            return str(st.secrets[secrets_key])
         except (KeyError, AttributeError):
             pass
         
         # Try nested secrets (for backward compatibility)
         try:
-            if hasattr(st, 'secrets'):
-                keys = secrets_key.split('.')
-                secrets = st.secrets
-                for key in keys:
-                    secrets = secrets[key]
-                return str(secrets)
+            keys = secrets_key.split('.')
+            secrets = st.secrets
+            for key in keys:
+                secrets = secrets[key]
+            return str(secrets)
         except (KeyError, AttributeError):
             pass
         

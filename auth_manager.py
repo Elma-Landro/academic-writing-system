@@ -16,7 +16,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email'
 ]
 
-REDIRECT_URI = "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
+REDIRECT_URI = "https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev/oauth2callback"
 
 class GoogleAuthManager:
     """Gestionnaire d'authentification Google robuste avec gestion d'erreurs complète."""
@@ -33,20 +33,17 @@ class GoogleAuthManager:
     def _get_client_config(self) -> Dict[str, Any]:
         """Récupère la configuration client depuis les secrets."""
         try:
-            # Utiliser directement les variables d'environnement (secrets Replit)
-            client_id = os.getenv("GOOGLE_CLIENT_ID")
-            client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+            # Essayer d'abord les secrets Streamlit (pour compatibilité)
+            if hasattr(st, 'secrets') and 'google' in st.secrets:
+                client_id = st.secrets["google"]["client_id"]
+                client_secret = st.secrets["google"]["client_secret"]
+            else:
+                # Utiliser les variables d'environnement (secrets Replit)
+                client_id = os.getenv("GOOGLE_CLIENT_ID")
+                client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
 
-            # Si pas trouvé, essayer les secrets Streamlit
-            if not client_id and hasattr(st, 'secrets'):
-                try:
-                    client_id = st.secrets.get("GOOGLE_CLIENT_ID") or st.secrets["google"]["client_id"]
-                    client_secret = st.secrets.get("GOOGLE_CLIENT_SECRET") or st.secrets["google"]["client_secret"]
-                except (KeyError, AttributeError):
-                    pass
-
-            if not client_id or not client_secret:
-                raise ValueError("Google OAuth credentials not found")
+                if not client_id or not client_secret:
+                    raise ValueError("Google OAuth credentials not found")
 
             return {
                 "web": {
@@ -54,10 +51,7 @@ class GoogleAuthManager:
                     "client_secret": client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [
-                        "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback",
-                        "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
-                    ]
+                    "redirect_uris": [REDIRECT_URI]
                 }
             }
         except Exception as e:
@@ -71,7 +65,7 @@ class GoogleAuthManager:
             flow = Flow.from_client_config(
                 client_config,
                 scopes=SCOPES,
-                redirect_uri=self.get_redirect_uri()
+                redirect_uri=REDIRECT_URI
             )
             return flow
         except Exception as e:
@@ -273,8 +267,15 @@ class GoogleAuthManager:
 
     def get_redirect_uri(self):
         """Obtient l'URI de redirection basée sur l'environnement."""
-        # Utiliser l'URL actuelle du déploiement
-        return "https://academic-writing-system-mael-rolland.streamlit.app/oauth2callback"
+        if self.is_replit_environment():
+            # Utilise l'URL Replit stable
+            replit_url = os.environ.get('REPL_URL')
+            if not replit_url:
+                # Fallback vers l'URL stable connue
+                replit_url = 'https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev'
+            return f"{replit_url}/oauth2callback"
+        else:
+            return "http://localhost:8501/oauth2callback"
 
     def is_replit_environment(self) -> bool:
         """Vérifie si l'environnement est Replit."""
