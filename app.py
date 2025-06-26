@@ -588,15 +588,39 @@ if __name__ == "__main__":
     #sedimentation_manager = SedimentationManager()
     #fileverse_manager = FileVerseManager()
 
+    # Handle OAuth callback
+    query_params = st.experimental_get_query_params()
+    if 'code' in query_params:
+        handle_oauth_callback()
+        return
+    
     # Authentification
     if not auth_manager.is_authenticated():
         render_login_page()
 
-def handle_oauth_callback(code: str, state: Optional[str]) -> bool:
-    """Handles the OAuth callback from Google."""
-    try:
-        # Assuming auth_manager has a method to handle the callback
-        return auth_manager.process_google_oauth_callback(code, state)
+def handle_oauth_callback():
+    """Handle OAuth callback from Google."""
+    import streamlit as st
+    from urllib.parse import parse_qs
+    
+    # Get query parameters
+    query_params = st.experimental_get_query_params()
+    
+    if 'code' in query_params:
+        code = query_params['code'][0]
+        state = query_params.get('state', [None])[0]
+        
+        # Process the callback
+        from auth_manager import auth_manager
+        success = auth_manager.handle_oauth_callback(code, state)
+        
+        if success:
+            st.success("Authentification réussie!")
+            st.experimental_rerun()
+        else:
+            st.error("Erreur d'authentification")
+    
+    return False state)
     except Exception as e:
         st.error(f"OAuth callback error: {e}")
         logger.error(f"OAuth callback error: {e}")

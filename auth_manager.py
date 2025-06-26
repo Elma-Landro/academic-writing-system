@@ -16,7 +16,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email'
 ]
 
-REDIRECT_URI = "https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev/oauth2callback"
+REDIRECT_URI = "https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev"
 
 class GoogleAuthManager:
     """Gestionnaire d'authentification Google robuste avec gestion d'erreurs complète."""
