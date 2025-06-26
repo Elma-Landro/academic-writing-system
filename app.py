@@ -620,7 +620,4 @@ def handle_oauth_callback():
         else:
             st.error("Erreur d'authentification")
     
-    except Exception as e:
-        st.error(f"OAuth callback error: {e}")
-        logger.error(f"OAuth callback error: {e}")
-        return False
+    
