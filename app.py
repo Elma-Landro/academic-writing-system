@@ -395,71 +395,24 @@ def render_profile_page(user):
             except Exception as e:
                 st.error(f"Failed to save preferences: {e}")
 
-def render_main_navigation():
-    """Render the main navigation interface."""
-    st.title("🎓 Academic Writing System")
-    st.subheader("Système de rédaction académique avec IA générative")
+def handle_oauth_callback():
+    """Handle OAuth callback from Google."""
+    from urllib.parse import parse_qs
+    # Get query parameters
+    query_params = st.query_params
 
-    # Project selection
-    current_user = st.session_state.get('current_user')
-    if current_user:
-        projects = db_manager.get_user_projects(current_user.id) #project_context.get_all_projects()
+    if 'code' in query_params:
+        code = query_params['code'][0]
+        state = query_params.get('state', [None])[0]
 
-        if projects:
-            project_options = {f"{p.title} ({p.id})": p.id
-                             for p in projects}
-            selected_project = st.selectbox(
-                "Sélectionner un projet",
-                options=list(project_options.keys()),
-                key="project_selector"
-            )
+        # Process the callback
+        success = auth_manager.handle_oauth_callback(code, state)
 
-            if selected_project:
-                project_id = project_options[selected_project]
-                st.session_state.project_id = project_id
-
-        # Navigation buttons - 4 étapes principales + Web3
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            if st.button("🎯 Storyboard IA", key="nav_storyboard"):
-                st.session_state.page = "storyboard"
-                st.rerun()
-
-        with col2:
-            if st.button("✍️ Rédaction", key="nav_redaction"):
-                st.session_state.page = "redaction"
-                st.rerun()
-
-        with col3:
-            if st.button("🔍 Révision", key="nav_revision"):
-                st.session_state.page = "revision"
-                st.rerun()
-
-        with col4:
-            if st.button("📄 Finalisation", key="nav_finalisation"):
-                st.session_state.page = "finalisation"
-                st.rerun()
-
-        # Section Web3 séparée
-        st.markdown("---")
-        col_web3, col_settings = st.columns(2)
-
-        with col_web3:
-            if st.button("🔗 Authentification Web3", key="nav_web3"):
-                st.session_state.page = "web3"
-                st.rerun()
-
-        with col_settings:
-            if st.button("⚙️ Paramètres", key="nav_settings"):
-                st.session_state.page = "settings"
-                st.rerun()
-
-def initialize_web3_session():
-    st.write("Initializing Web3 Session (Placeholder)")
-
-def render_web3_auth_interface():
-    st.write("Web3 Authentication Interface (Placeholder)")
+        if success:
+            st.success("Authentification réussie!")
+            st.rerun()
+        else:
+            st.error("Erreur d'authentification")
 
 def main():
     """Main application entry point."""
@@ -487,6 +440,7 @@ def main():
                 query_params = st.query_params
                 if 'code' in query_params:
                     st.info("Traitement de l'authentification en cours...")
+                    handle_oauth_callback()
 
                 # Rendu du système d'authentification
                 try:
@@ -571,28 +525,5 @@ def main():
         st.error(f"Application error: {e}")
         logger.error(f"Main application error: {e}")
 
-def handle_oauth_callback():
-    """Handle OAuth callback from Google."""
-    import streamlit as st
-    from urllib.parse import parse_qs
-    
-    # Get query parameters
-    query_params = st.experimental_get_query_params()
-    
-    if 'code' in query_params:
-        code = query_params['code'][0]
-        state = query_params.get('state', [None])[0]
-        
-        # Process the callback
-        success = auth_manager.handle_oauth_callback(code, state)
-        
-        if success:
-            st.success("Authentification réussie!")
-            st.experimental_rerun()
-        else:
-            st.error("Erreur d'authentification")
-
 if __name__ == "__main__":
     main()
-    
-    
