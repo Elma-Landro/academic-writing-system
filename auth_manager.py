@@ -16,7 +16,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email'
 ]
 
-REDIRECT_URI = "https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev"
+REDIRECT_URI = "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
 
 class GoogleAuthManager:
     """Gestionnaire d'authentification Google robuste avec gestion d'erreurs complète."""
@@ -54,7 +54,10 @@ class GoogleAuthManager:
                     "client_secret": client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [REDIRECT_URI]
+                    "redirect_uris": [
+                        "https://ing-system-mael-rolland.streamlit.app/oauth2callback",
+                        "http://localhost:5000/oauth2callback"
+                    ]
                 }
             }
         except Exception as e:
@@ -68,7 +71,7 @@ class GoogleAuthManager:
             flow = Flow.from_client_config(
                 client_config,
                 scopes=SCOPES,
-                redirect_uri=REDIRECT_URI
+                redirect_uri=self.get_redirect_uri()
             )
             return flow
         except Exception as e:
@@ -271,14 +274,10 @@ class GoogleAuthManager:
     def get_redirect_uri(self):
         """Obtient l'URI de redirection basée sur l'environnement."""
         if self.is_replit_environment():
-            # Utilise l'URL Replit stable
-            replit_url = os.environ.get('REPL_URL')
-            if not replit_url:
-                # Fallback vers l'URL stable connue
-                replit_url = 'https://7fcd3aac-a017-41b2-858c-65d0fdadcc7e-00-127haec9qs0ug.kirk.replit.dev'
-            return f"{replit_url}/oauth2callback"
+            # Utilise l'URL Streamlit App
+            return "https://ing-system-mael-rolland.streamlit.app/oauth2callback"
         else:
-            return "http://localhost:8501/oauth2callback"
+            return "http://localhost:5000/oauth2callback"
 
     def is_replit_environment(self) -> bool:
         """Vérifie si l'environnement est Replit."""

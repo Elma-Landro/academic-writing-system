@@ -397,22 +397,26 @@ def render_profile_page(user):
 
 def handle_oauth_callback():
     """Handle OAuth callback from Google."""
-    from urllib.parse import parse_qs
     # Get query parameters
     query_params = st.query_params
 
     if 'code' in query_params:
-        code = query_params['code'][0]
-        state = query_params.get('state', [None])[0]
+        code = query_params['code'] if isinstance(query_params['code'], str) else query_params['code'][0]
+        state = query_params.get('state')
+        if state and not isinstance(state, str):
+            state = state[0] if len(state) > 0 else None
 
         # Process the callback
         success = auth_manager.handle_oauth_callback(code, state)
 
         if success:
             st.success("Authentification réussie!")
+            # Clear URL parameters
+            st.query_params.clear()
             st.rerun()
         else:
             st.error("Erreur d'authentification")
+            st.query_params.clear()
 
 def main():
     """Main application entry point."""
