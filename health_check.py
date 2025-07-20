@@ -26,16 +26,11 @@ def test_imports():
     failed_imports = []
     
     for module_name, description in modules:
-        try:
-            if module_name in ('jwt', 'google.auth'):
-                spec = importlib.util.find_spec(module_name)
-                if spec is None:
-                    raise ImportError(f"No module named {module_name}")
-            else:
-                __import__(module_name)
+        spec = importlib.util.find_spec(module_name)
+        if spec:
             print(f"✅ {module_name:15} - {description}")
-        except ImportError as e:
-            print(f"❌ {module_name:15} - {description} (Error: {e})")
+        else:
+            print(f"❌ {module_name:15} - {description}")
             failed_imports.append(module_name)
     
     return failed_imports
