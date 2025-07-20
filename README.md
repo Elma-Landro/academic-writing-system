@@ -1,6 +1,6 @@
 
 # Système de Rédaction Académique Intégré
-## 🚀 Plateforme d'assistance IA pour la rédaction académique
+## 🚀 Plateforme d'assistance IA pour la rédaction académique.
 
 Une plateforme avancée combinant **intelligence artificielle** et **workflow de sédimentation progressive** pour révolutionner la rédaction académique structurée.
 
