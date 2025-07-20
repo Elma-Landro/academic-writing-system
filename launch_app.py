@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Enhanced App Launcher for Academic Writing System
 Handles Streamlit secrets configuration properly
@@ -9,12 +8,11 @@ import os
 import sys
 import subprocess
 import shutil
-import importlib.util
 
 def check_streamlit_installation():
     """Check if Streamlit is properly installed"""
-    spec = importlib.util.find_spec("streamlit")
-    return spec is not None
+    import importlib.util
+    return importlib.util.find_spec("streamlit") is not None
 
 def find_streamlit_command():
     """Find the streamlit command in various locations"""

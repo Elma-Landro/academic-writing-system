@@ -5,9 +5,8 @@ echo "🚀 Starting Academic Writing System..."
 
 # Check Python version
 python_version=$(python3 --version 2>/dev/null | cut -d' ' -f2 | cut -d'.' -f1-2)
-python_version_major=${python_version%%.*}
-python_version_minor=${python_version#*.}
-if [ "$python_version_major" -lt 3 ] || { [ "$python_version_major" -eq 3 ] && [ "$python_version_minor" -lt 8 ]; }; then
+IFS='.' read -r python_major python_minor <<< "$python_version"
+if (( python_major < 3 || ( python_major == 3 && python_minor < 8 ) )); then
     echo "❌ Python 3.8+ required. Current version: $python_version"
     exit 1
 fi
@@ -43,32 +42,33 @@ fi
 # Check if all core modules can import
 echo "🔧 Checking core modules..."
 python3 -c "
-import sys
-sys.path.append('.')
+ import sys
+ sys.path.append('.')
 
-modules_to_test = [
-    'core.auth_system',
-    'core.database_layer', 
-    'core.config_manager',
-    'modules.storyboard',
-    'services.ai_service'
-]
+ modules_to_test = [
+     'core.auth_system',
+     'core.database_layer', 
+     'core.config_manager',
+     'modules.storyboard',
+     'services.ai_service'
+ ]
 
-failed_modules = []
-for module in modules_to_test:
-    try:
-        __import__(module)
-    except Exception as e:
-        failed_modules.append(f'{module}: {e}')
+ failed_modules = []
+ for module in modules_to_test:
+     try:
+         __import__(module)
+     except Exception as e:
+         failed_modules.append(f'{module}: {e}')
 
-if failed_modules:
-    print('❌ Failed to import:')
-    for failure in failed_modules:
-        print(f'  - {failure}')
-    exit(1)
-else:
-    print('✅ All core modules imported successfully')
+ if failed_modules:
+     print('❌ Failed to import:')
+     for failure in failed_modules:
+         print(f'  - {failure}')
+     exit(1)
+ else:
+     print('✅ All core modules imported successfully')
 "
+
 if [ $? -ne 0 ]; then
     echo "❌ Core module import failed. Please check dependencies."
     exit 1
@@ -77,41 +77,43 @@ fi
 # Check if secrets are configured in Streamlit
 echo "🔐 Checking Streamlit secrets configuration..."
 python3 -c "
-import streamlit as st
-try:
-    # Test if secrets are accessible
-    secrets = st.secrets
-    
-    # Check for required secrets
-    required_sections = ['google_oauth', 'openai']
-    missing_secrets = []
-    
-    for section in required_sections:
-        if section not in secrets:
-            missing_secrets.append(section)
-    
-    if missing_secrets:
-        print(f'❌ Missing secret sections: {missing_secrets}')
-        print('Please configure secrets in Streamlit Cloud or add .streamlit/secrets.toml')
-        exit(1)
-    else:
-        print('✅ Streamlit secrets configured')
-        
-except Exception as e:
-    print(f'⚠️  Secrets check failed: {e}')
-    print('This is normal if running locally without secrets.toml')
+ import streamlit as st
+ try:
+     # Test if secrets are accessible
+     secrets = st.secrets
+     
+     # Check for required secrets
+     required_sections = ['google_oauth', 'openai']
+     missing_secrets = []
+     
+     for section in required_sections:
+         if section not in secrets:
+             missing_secrets.append(section)
+     
+     if missing_secrets:
+         print(f'❌ Missing secret sections: {missing_secrets}')
+         print('Please configure secrets in Streamlit Cloud or add .streamlit/secrets.toml')
+         exit(1)
+     else:
+         print('✅ Streamlit secrets configured')
+         
+ except Exception as e:
+     print(f'⚠️  Secrets check failed: {e}')
+     print('This is normal if running locally without secrets.toml')
 "
+
 # Initialize database if needed
 echo "🗄️  Initializing database..."
 python3 -c "
-from core.database_layer import db_manager
-try:
-    db_manager.init_db()
-    print('✅ Database initialized successfully')
-except Exception as e:
-    print(f'❌ Database initialization failed: {e}')
-    exit(1)
+ from core.database_layer import db_manager
+ try:
+     db_manager.init_db()
+     print('✅ Database initialized successfully')
+ except Exception as e:
+     print(f'❌ Database initialization failed: {e}')
+     exit(1)
 "
+
 if [ $? -ne 0 ]; then
     echo "❌ Database initialization failed"
     exit 1
